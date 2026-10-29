@@ -1,8 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- No permissions at all. Files arrive with the read grant of the intent
          that opened them, and nothing in the app uses the network. -->
+
+    <!-- androidx.core (pulled in by RecyclerView) declares and requests a
+         private permission for ContextCompat.registerReceiver. The app
+         registers no receivers, so both are removed from the merged manifest. -->
+    <permission
+        android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        tools:node="remove" />
+    <uses-permission
+        android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        tools:node="remove" />
 
     <application
         android:allowBackup="false"

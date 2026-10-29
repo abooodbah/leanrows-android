@@ -67,6 +67,18 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = false
     }
+
+    // The desktop's test files and the port of its generator, for both the
+    // JVM tests and the instrumented tests' file provider.
+    sourceSets {
+        getByName("test") {
+            java.srcDir("src/sharedTest/java")
+        }
+        getByName("androidTest") {
+            java.srcDir("src/sharedTest/java")
+            assets.srcDir("src/sharedTest/fixtures")
+        }
+    }
 }
 
 kotlin {
@@ -76,7 +88,13 @@ kotlin {
 }
 
 dependencies {
+    // The one library in the app: a recycling list with a fast scroller, so
+    // a 100,000-row file keeps only the rows on screen as views.
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
+
     testImplementation("junit:junit:4.13.2")
+    // org.json is part of Android, but only as stubs in JVM tests.
+    testImplementation("org.json:json:20240303")
 
     androidTestImplementation("androidx.test:core:1.7.0")
     androidTestImplementation("androidx.test:runner:1.7.0")

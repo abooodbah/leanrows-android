@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LeanRows</string>
+    <string name="find">Find</string>
+    <string name="find_hint">Find in file</string>
+    <string name="find_previous">Find previous</string>
+    <string name="find_next">Find next</string>
+    <string name="previous_symbol">&lt;</string>
+    <string name="next_symbol">&gt;</string>
+    <string name="match_case">Match case</string>
+    <string name="close">Close</string>
+    <string name="go_to_row">Go to row</string>
+    <string name="open">Open</string>
+    <string name="open_file">Open a file</string>
+    <string name="copy">Copy</string>
+    <string name="empty">Open a CSV, TSV, JSON Lines or log file to see its rows.\n\nLeanRows only reads the file. It has no network access.</string>
 </resources>

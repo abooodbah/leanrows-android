@@ -1,0 +1,100 @@
+[
+  {
+    "name": "Find folds no letters",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Finder.kt",
+    "old": "if (byte in UPPER_A..UPPER_Z) (byte + CASE_OFFSET).toByte() else byte",
+    "new": "byte"
+  },
+  {
+    "name": "Find does not wrap to the top",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Finder.kt",
+    "old": "        return first(needle, matchCase, 0, after + 1, cancelled)?.let { Hit(it, wrapped = true) }",
+    "new": "        return null ?: (null as Long?)?.let { Hit(it, wrapped = true) }"
+  },
+  {
+    "name": "Find puts every match in a chunk on its first row",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Finder.kt",
+    "old": "val row = rowsBefore + endIndex",
+    "new": "val row = rowsBefore"
+  },
+  {
+    "name": "Row windows are never dropped",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/RowWindows.kt",
+    "old": "while (cache.size > keep) {",
+    "new": "while (false && cache.size > keep) {"
+  },
+  {
+    "name": "Off-screen windows are read anyway",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/RowWindows.kt",
+    "old": "if (closed || abs(window - focus) > 1) {",
+    "new": "if (closed) {"
+  },
+  {
+    "name": "Columns have no maximum width",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Columns.kt",
+    "old": ".coerceIn(minimum, maximum)",
+    "new": ".coerceAtLeast(minimum)"
+  },
+  {
+    "name": "A window reads one row too many",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Table.kt",
+    "old": "if (row >= first && row < last) spans += longArrayOf(row, start, end)",
+    "new": "if (row >= first && row <= last) spans += longArrayOf(row, start, end)"
+  },
+  {
+    "name": "A lone CR does not end a record",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/RecordScanner.kt",
+    "old": "                if (!complete(recordEnd, emit)) return index - start\n            }\n            if (state != State.QUOTED && byte == CR) {",
+    "new": "            }\n            if (state != State.QUOTED && byte == CR) {"
+  },
+  {
+    "name": "Truncated cells get no marker",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Fields.kt",
+    "old": "const val MARKER = \" ...\"",
+    "new": "const val MARKER = \"\""
+  },
+  {
+    "name": "file:// URIs are read",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "if (uri.scheme != \"content\") {",
+    "new": "if (false) {"
+  },
+  {
+    "name": "Stream copies are left in the cache",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sources.kt",
+    "old": "        } finally {\n            file.delete()\n        }",
+    "new": "        } finally {\n        }"
+  },
+  {
+    "name": "Sideways drags are not taken",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/TableViews.kt",
+    "old": "        return dragging\n    }",
+    "new": "        return false\n    }"
+  },
+  {
+    "name": "Match case is ignored",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "val exact = matchCase.isChecked",
+    "new": "val exact = false"
+  },
+  {
+    "name": "The unterminated quote is not reported",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "if (table.unterminatedQuote) text +=",
+    "new": "if (false) text +="
+  }
+]
