@@ -690,7 +690,7 @@ internal class Xml(private val reader: Reader, private val part: String) {
         if (read <= 0) return false
         length = read
         // A byte order mark at the start of the part.
-        if (buffer[0] == '﻿' && first) position = 1
+        if (buffer[0] == '\uFEFF' && first) position = 1
         first = false
         return position < length
     }

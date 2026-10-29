@@ -392,6 +392,8 @@ class MainActivity : Activity() {
         document?.close()
         document = null
         list.adapter = null
+        // The start screen's text is not the answer for this file.
+        message.visibility = View.GONE
         findViewById<View>(R.id.sheet).visibility = View.GONE
         hideFindBar()
         return opening
