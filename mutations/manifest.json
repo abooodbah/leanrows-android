@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Add the INTERNET permission",
+    "suite": "jvm",
+    "file": "app/src/main/AndroidManifest.xml",
+    "old": "    <application\n",
+    "new": "    <uses-permission android:name=\"android.permission.INTERNET\" />\n\n    <application\n"
+  },
+  {
+    "name": "Drop text/csv from the VIEW filter",
+    "suite": "jvm",
+    "file": "app/src/main/AndroidManifest.xml",
+    "old": "                <data android:scheme=\"content\" />\n                <data android:mimeType=\"text/csv\" />\n",
+    "new": "                <data android:scheme=\"content\" />\n"
+  },
+  {
+    "name": "Drop the .tsv name pattern",
+    "suite": "jvm",
+    "file": "app/src/main/AndroidManifest.xml",
+    "old": "                <data android:pathPattern=\".*\\\\.tsv\" />\n",
+    "new": ""
+  },
+  {
+    "name": "Drop text/csv from the SEND filter",
+    "suite": "jvm",
+    "file": "app/src/main/AndroidManifest.xml",
+    "old": "                <action android:name=\"android.intent.action.SEND\" />\n                <category android:name=\"android.intent.category.DEFAULT\" />\n                <data android:mimeType=\"text/csv\" />\n",
+    "new": "                <action android:name=\"android.intent.action.SEND\" />\n                <category android:name=\"android.intent.category.DEFAULT\" />\n"
+  }
+]
