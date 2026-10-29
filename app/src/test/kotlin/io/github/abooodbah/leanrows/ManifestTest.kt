@@ -60,6 +60,16 @@ class ManifestTest {
     }
 
     @Test
+    fun opensExcelWorkbooksFromOtherApps() {
+        val xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        val view = filters("android.intent.action.VIEW").flatMap { it.children("data") }
+        assertTrue("VIEW filters accept $xlsx", xlsx in view.map { it.attr("mimeType") })
+        assertTrue("VIEW filters match .xlsx names", ".*\\\\.xlsx" in view.map { it.attr("pathPattern") })
+        val send = filters("android.intent.action.SEND").flatMap { it.children("data") }
+        assertTrue("SEND filters accept $xlsx", xlsx in send.map { it.attr("mimeType") })
+    }
+
+    @Test
     fun sharedRowFilesOpenHere() {
         val types = filters("android.intent.action.SEND").flatMap { it.children("data") }.map { it.attr("mimeType") }
         assertTrue("SEND filters accept text/csv: $types", "text/csv" in types)
