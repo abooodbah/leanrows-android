@@ -21,12 +21,19 @@ Updated with every merge. The next session starts here.
   instrumented tests on API 26 and API 34, budgets against the base branch
   and an empty app, APK contents and the arm64 download size. Mutation check:
   `mutations.yml` with `mutations/*.json`.
+- Excel .xlsx (PR #4, v0.1.1): the chosen sheet is written as CSV into the
+  cache and shown by the row engine, with columns A, B, C and a Sheet button
+  for the other visible sheets. The rules are in `docs/XLSX.md`, shared with
+  desktop LeanRows. The zip is read through its central directory and each
+  part is counted while it is unpacked; DOCTYPE is refused. Test files come
+  from LibreOffice, XlsxWriter and openpyxl, and the expected rows from
+  `tools/xlsx-fixtures/oracle.py`, a second implementation.
 - Store texts, data safety, content rating, closed-test plan and light and
   dark screenshots in `store/`; signing steps in the README.
 
 ## In progress
 
-- Release v0.1.0.
+- Release v0.1.1.
 
 ## Remaining
 
@@ -36,8 +43,12 @@ Updated with every merge. The next session starts here.
 
 ## Known gaps
 
-- .xlsx is not supported. It needs a zip and XML reader and shared-string
-  handling; it did not fit this round.
+- .xls, .xlsm and .xlsb are not supported. Number formats other than dates
+  and times are not applied, so 12.5% shows as 0.125.
+- No test workbook was written by Excel itself, and none has phonetic text
+  (used with Japanese), because none of the writers used makes it.
+- A sheet is written out in full before it is shown: about 3 s for 100,000
+  rows on the emulator.
 - Columns are named Column 1, Column 2 and so on, and the first line is
   shown as a row, as in the desktop app; there is no header detection.
 - At most 64 fields of 1,024 bytes are shown per record, from its first
@@ -64,6 +75,15 @@ run 40841223895. The empty app took 1,484 ms to its first frame there.
 | App PSS after large-multiline.csv | 26,935 KB |
 | Janky frames over 10 swipes (software GPU, not a budget check) | 67 of 68 |
 
+For .xlsx, PR #4, run 40876588303 (empty app 704 ms to its first frame):
+
+| Measure | Value |
+| --- | ---: |
+| Release APK, all ABIs | 217,293 bytes |
+| Writing the sheet of large-weather.xlsx (100,001 rows) as CSV | 3,138 ms |
+| large-weather.xlsx rows drawn after a cold start | 3,716 ms |
+| App PSS after large-weather.xlsx | 24,339 KB |
+
 ## Phone test
 
 The emulator in CI has no GPU, so its start times and jank do not show what
@@ -74,13 +94,13 @@ minutes.
 
 From the release page on GitHub, download onto the phone:
 
-- `LeanRows-0.1.0.apk`: the release build (minified), signed with a throwaway
+- `LeanRows-0.1.1.apk`: the release build (minified), signed with a throwaway
   key. Use this one for timing.
-- `LeanRows-0.1.0-debug.apk`: the debug build, for comparison only. It is slower
+- `LeanRows-0.1.1-debug.apk`: the debug build, for comparison only. It is slower
   by design.
 - `empty-app.apk`: an app with one empty screen, for the start-time
   baseline with adb (it has no launcher icon).
-- `LeanRows-0.1.0-phone-test-files.zip`: the files below. Unzip it into
+- `LeanRows-0.1.1-phone-test-files.zip`: the files below. Unzip it into
   Downloads.
 
 Open the APK from the browser's downloads or the Files app and allow the
@@ -143,7 +163,19 @@ frames" and "90th percentile".
 After scrolling `large-multiline.csv`: `adb shell dumpsys meminfo io.github.abooodbah.leanrows`
 (TOTAL PSS).
 
+### Excel workbook
+
+1. Force stop LeanRows, then open `large-weather.xlsx` from the Files app.
+   Note the time from the tap until the rows are on screen, as for the start
+   time above. The status line shows "Reading sheet" while it is written out.
+2. Open `features.xlsx`. The Sheet button lists Readings and Notes (the
+   hidden sheet Lookup is not offered). Check that dates show as 2026-01-01.
+
+With adb, after opening the workbook: `adb logcat -d -s LeanRows:I` shows
+"wrote sheet 1 as 100001 CSV rows in N ms".
+
 ### What to send back
 
 Phone model, Android version, the three start times and the empty-app time,
-what the scrolling bars looked like, and the memory numbers if you used adb.
+what the scrolling bars looked like, the workbook time, and the memory
+numbers if you used adb.

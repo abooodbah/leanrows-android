@@ -26,7 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *       streams it without a size, as mail and cloud apps often do.
  *   <li>SOURCE "desktop" is a file copied from the desktop repository;
  *       "generated" is written by the desktop's fixture script (through its
- *       port, DesktopFixtures).
+ *       port, DesktopFixtures); "xlsx" and "xlsx-hostile" are the workbooks
+ *       written by tools/xlsx-fixtures/make.py.
  * </ul>
  *
  * <p>Java, not Kotlin: Android starts this provider in the test package's own
@@ -58,6 +59,7 @@ public final class FixtureProvider extends ContentProvider {
             case "ndjson": return "application/x-ndjson";
             case "log":
             case "txt": return "text/plain";
+            case "xlsx": return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
             default: return "application/octet-stream";
         }
     }
@@ -153,8 +155,14 @@ public final class FixtureProvider extends ContentProvider {
             DesktopFixtures.write(name, out);
             return;
         }
-        if (!"desktop".equals(source)) throw new FileNotFoundException(source + "/" + name);
-        try (InputStream in = getContext().getAssets().open("desktop/" + name)) {
+        String folder;
+        switch (source) {
+            case "desktop": folder = "desktop/"; break;
+            case "xlsx": folder = "xlsx/"; break;
+            case "xlsx-hostile": folder = "xlsx/hostile/"; break;
+            default: throw new FileNotFoundException(source + "/" + name);
+        }
+        try (InputStream in = getContext().getAssets().open(folder + name)) {
             byte[] buffer = new byte[64 * 1024];
             int read;
             while ((read = in.read(buffer)) >= 0) out.write(buffer, 0, read);

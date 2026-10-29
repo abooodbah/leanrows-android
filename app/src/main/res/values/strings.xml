@@ -11,7 +11,8 @@
     <string name="close">Close</string>
     <string name="go_to_row">Go to row</string>
     <string name="open">Open</string>
+    <string name="sheet">Sheet</string>
     <string name="open_file">Open a file</string>
     <string name="copy">Copy</string>
-    <string name="empty">Open a CSV, TSV, JSON Lines or log file to see its rows.\n\nLeanRows only reads the file. It has no network access.</string>
+    <string name="empty">Open a CSV, TSV, JSON Lines, log or Excel .xlsx file to see its rows.\n\nLeanRows only reads the file. It has no network access.</string>
 </resources>

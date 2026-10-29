@@ -1,0 +1,149 @@
+[
+  {
+    "name": "No ratio limit",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/XlsxZip.kt",
+    "old": "if (unpacked > limits.ratioAfterBytes && unpacked > maxOf(consumed, 1L) * limits.ratio) {",
+    "new": "if (false) {"
+  },
+  {
+    "name": "No size limit",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/XlsxZip.kt",
+    "old": "if (unpacked > limits.entryBytes) {",
+    "new": "if (false) {"
+  },
+  {
+    "name": "Accept a DOCTYPE",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "throw XlsxException(\"This workbook's $part has a DOCTYPE or a declaration, which LeanRows does not read.\")",
+    "new": "skipPast(\">\")"
+  },
+  {
+    "name": "No row limit",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "if (rowNumber > limits.rows) throw",
+    "new": "if (false) throw"
+  },
+  {
+    "name": "Offer hidden sheets",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "if (state != \"hidden\" && state != \"veryHidden\" && target != null) {",
+    "new": "if (target != null) {"
+  },
+  {
+    "name": "Ignore the 1904 date system",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "date1904 = xml.attribute(\"date1904\").let { it == \"1\" || it == \"true\" }",
+    "new": "date1904 = false"
+  },
+  {
+    "name": "No 1900 leap-day shift",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "serial < 61) serial + 1 else serial",
+    "new": "serial < 61) serial else serial"
+  },
+  {
+    "name": "Built-in date formats 14 to 17 not dates",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "in 14..17 -> DateKind.DATE",
+    "new": "in 14..13 -> DateKind.DATE"
+  },
+  {
+    "name": "Time formats shown as numbers",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "hasTime -> DateKind.TIME",
+    "new": "hasTime -> DateKind.NONE"
+  },
+  {
+    "name": "Truncate seconds instead of rounding",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "(days * 86_400.0).roundToLong()",
+    "new": "(days * 86_400.0).toLong()"
+  },
+  {
+    "name": "Keep phonetic runs in shared strings",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "\"t\" -> inText = item != null && !inPhonetic",
+    "new": "\"t\" -> inText = item != null"
+  },
+  {
+    "name": "Leave out missing rows",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "while (nextRow < rowNumber) {",
+    "new": "while (false && nextRow < rowNumber) {"
+  },
+  {
+    "name": "Ignore cell references",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "cellColumn = xml.attribute(\"r\")?.let { columnOf(it) } ?: column",
+    "new": "cellColumn = column"
+  },
+  {
+    "name": "Booleans as 1 and 0",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "\"1\" -> \"TRUE\"",
+    "new": "\"1\" -> \"1\""
+  },
+  {
+    "name": "Do not double quotes in CSV",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "out.write(text.replace(\"\\\"\", \"\\\"\\\"\").toByteArray(Charsets.UTF_8))",
+    "new": "out.write(text.toByteArray(Charsets.UTF_8))"
+  },
+  {
+    "name": "Take any zip for a workbook",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Xlsx.kt",
+    "old": "String(sample, Charsets.ISO_8859_1).contains(\"xl/\")",
+    "new": "true"
+  },
+  {
+    "name": "Drop .xlsx from SEND",
+    "suite": "jvm",
+    "file": "app/src/main/AndroidManifest.xml",
+    "old": "                <data android:mimeType=\"application/x-ndjson\" />\n                <data android:mimeType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\" />\n",
+    "new": "                <data android:mimeType=\"application/x-ndjson\" />\n"
+  },
+  {
+    "name": "Never show the Sheet button",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "if (workbook != null && workbook.book.sheets.size > 1) View.VISIBLE else View.GONE",
+    "new": "View.GONE"
+  },
+  {
+    "name": "Column 1 instead of A",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "lettered = workbook != null",
+    "new": "lettered = false"
+  },
+  {
+    "name": "Status says CSV for a workbook",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "\"Excel, sheet ${workbook.book.sheets[document.sheet].name}\"",
+    "new": "\"CSV\""
+  },
+  {
+    "name": "Open a workbook as text",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "if (XlsxBook.recognises(result.name, mimeType, sample)) {",
+    "new": "if (false) {"
+  }
+]

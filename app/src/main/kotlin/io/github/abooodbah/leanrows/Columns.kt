@@ -3,7 +3,8 @@ package io.github.abooodbah.leanrows
 /**
  * Column titles and widths, as the desktop names them: "Row", then
  * "Column 1" to "Column N" for delimited files, or one "Preview" column for
- * line formats. Widths follow the widest text in the first rows read,
+ * line formats. Excel sheets use the sheet's letters, A to Z, AA and on.
+ * Widths follow the widest text in the first rows read,
  * between [minimum] and [maximum] pixels, and then stay put so the table does
  * not shift while scrolling; later rows only add columns. Longer cells are
  * cut with an ellipsis and shown whole when tapped.
@@ -16,6 +17,8 @@ class Columns(
     private val maximum: Float,
     /** Characters measured per cell; anything longer is at [maximum] anyway. */
     private val measuredChars: Int = 80,
+    /** Title columns A, B, C as a spreadsheet does, instead of "Column 1". */
+    private val lettered: Boolean = false,
 ) {
     private var sized = false
 
@@ -43,7 +46,7 @@ class Columns(
         val previousCount = titles.size
         val count = rows.maxOfOrNull { it.cells.size } ?: 0
         if (!preview && count > titles.size) {
-            titles = titles + (titles.size + 1..count).map { "Column $it" }
+            titles = titles + (titles.size + 1..count).map { if (lettered) XlsxBook.columnName(it - 1) else "Column $it" }
             widths = widths.copyOf(count).also { grown ->
                 for (index in widths.size until count) grown[index] = width(titles[index])
             }

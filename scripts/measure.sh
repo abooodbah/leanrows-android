@@ -26,6 +26,10 @@ LARGE_TYPE=text/csv
 WEBVIEW=no
 MEASURE_INDEXING=yes
 TIMING_TAG=none
+# An .xlsx workbook is written out as CSV before its rows can be shown.
+WORKBOOK=file/xlsx/large-weather.xlsx
+WORKBOOK_NAME="large-weather.xlsx (100,001 rows)"
+WORKBOOK_TYPE=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 
 ROUNDS=${ROUNDS:-3}
 STARTS_PER_ROUND=${STARTS_PER_ROUND:-3}
@@ -159,6 +163,19 @@ indexed_ms() {
   echo NA
 }
 
+sheet_ms() {
+  local limit=$1 line
+  for _ in $(seq 1 $((limit * 10))); do
+    line=$(adb logcat -d -s LeanRows:I | grep -o "wrote sheet [0-9]* as [0-9]* CSV rows in [0-9]* ms" | head -n 1 || true)
+    if [ -n "$line" ]; then
+      awk '{ print $(NF - 1) }' <<<"$line"
+      return
+    fi
+    sleep 0.1
+  done
+  echo NA
+}
+
 renderer_count() {
   adb shell ps -A -o NAME | tr -d '\r' | grep -c sandboxed_process || true
 }
@@ -224,6 +241,26 @@ for label in "${LABELS[@]}"; do
   log "$label scrolling: frames ${FRAMES[$label]:-NA}, janky ${JANK[$label]:-NA}, p90 ${P90[$label]:-NA}"
 done
 
+# The workbook: time to write the sheet as CSV, time until its rows are drawn
+# after a cold start, and memory. A build without .xlsx support shows NA.
+declare -A SHEET_MS=() SHEET_DRAWN=() SHEET_PSS=()
+if [ -n "${WORKBOOK:-}" ]; then
+  for label in "${LABELS[@]}"; do
+    install "$label"
+    for run in 1 2 3; do
+      open_document "$WORKBOOK" "$WORKBOOK_TYPE" >/dev/null
+      drawn=$(fully_drawn 120)
+      written=$(sheet_ms 5)
+      sleep 5
+      app=$(pss_of "$PKG")
+      log "$label workbook run $run: sheet written in $written ms, drawn $drawn ms, app ${app:-NA} KB"
+      SHEET_MS[$label]+="$written"$'\n'
+      SHEET_DRAWN[$label]+="$drawn"$'\n'
+      SHEET_PSS[$label]+="${app:-NA}"$'\n'
+    done
+  done
+fi
+
 row() {
   local name=$1; shift
   printf '| %s |' "$name"
@@ -276,6 +313,17 @@ row() {
   row "Frames over 10 swipes (software GPU, not a budget check)" "${frames[@]}"
   row "Janky frames over 10 swipes (software GPU, not a budget check)" "${jank[@]}"
   row "90th percentile frame time (software GPU, not a budget check)" "${p90[@]}"
+  if [ -n "${WORKBOOK:-}" ]; then
+    sheet=(); sheet_drawn=(); sheet_pss=()
+    for label in "${LABELS[@]}"; do
+      sheet+=("$(median <<<"${SHEET_MS[$label]}")")
+      sheet_drawn+=("$(median <<<"${SHEET_DRAWN[$label]}")")
+      sheet_pss+=("$(median <<<"${SHEET_PSS[$label]}")")
+    done
+    row "Writing the sheet of $WORKBOOK_NAME as CSV (ms, median of 3)" "${sheet[@]}"
+    row "$WORKBOOK_NAME rows drawn after a cold start (ms, median of 3)" "${sheet_drawn[@]}"
+    row "App process PSS after $WORKBOOK_NAME (KB, median of 3)" "${sheet_pss[@]}"
+  fi
   if [ "${#PHASE_NAMES[@]}" -gt 0 ]; then
     echo
     echo "Where the time goes when $SMALL_NAME is opened: milliseconds from the activity's"

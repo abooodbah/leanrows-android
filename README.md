@@ -1,9 +1,14 @@
 # LeanRows for Android
 
-A read-only viewer for large CSV, TSV, JSON Lines and log files on Android.
+A read-only viewer for large CSV, TSV, JSON Lines and log files, and Excel
+.xlsx workbooks, on Android.
 It is the Android companion to the desktop app at
 https://github.com/abooodbah/leanrows and shows rows the same way: one scan
 to find where rows start, then only the rows on screen are read.
+
+An .xlsx sheet is written as CSV into the app's cache and shown by the same
+row engine. The rules for cell text and the limits are in
+[docs/XLSX.md](docs/XLSX.md).
 
 Work in progress. Not yet on Google Play.
 

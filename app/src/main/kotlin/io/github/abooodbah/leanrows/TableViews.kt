@@ -52,13 +52,14 @@ class TableStyle(context: Context) {
     val canvas = Paint().apply { color = context.getColor(R.color.canvas) }
     val highlight = Paint().apply { color = context.getColor(R.color.accent) and 0x00FFFFFF or 0x33000000 }
 
-    fun columns(preview: Boolean) = Columns(
+    fun columns(preview: Boolean, lettered: Boolean = false) = Columns(
         preview,
         measure = { text.measureText(it) },
         padding = padding,
         minimum = minimumWidth,
         maximum = if (preview) maximumPreviewWidth else maximumWidth,
         measuredChars = if (preview) 240 else 80,
+        lettered = lettered,
     )
 
     /** The baseline that centres one line of [paint] in [height]. */

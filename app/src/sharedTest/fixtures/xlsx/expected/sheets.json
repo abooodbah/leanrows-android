@@ -1,0 +1,30 @@
+{
+  "date-1904.xlsx": [
+    "Dates"
+  ],
+  "document-smoke.xlsx": [
+    "document-smoke"
+  ],
+  "features.xlsx": [
+    "Readings",
+    "Notes"
+  ],
+  "inline-quoted.xlsx": [
+    "inline-quoted"
+  ],
+  "inline-strings.xlsx": [
+    "Inline"
+  ],
+  "large-weather.xlsx": [
+    "Readings"
+  ],
+  "openpyxl-builtin-formats.xlsx": [
+    "Built-in"
+  ],
+  "openpyxl-stations.xlsx": [
+    "Stations"
+  ],
+  "weather-stations.xlsx": [
+    "weather-stations"
+  ]
+}
