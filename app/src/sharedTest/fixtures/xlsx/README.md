@@ -13,6 +13,8 @@ second implementation of the rules in `docs/XLSX.md` that reads the raw XML.
 | `inline-strings.xlsx` | XlsxWriter 3.2.9, constant-memory mode | strings stored inline in the sheet, not shared |
 | `date-1904.xlsx` | XlsxWriter 3.2.9 | dates in the 1904 date system |
 | `openpyxl-stations.xlsx` | openpyxl 3.1.5 | 25 rows of the weather data, a date and a boolean |
+| `openpyxl-builtin-formats.xlsx` | openpyxl 3.1.5 | Excel's built-in date and time formats 14 to 22 and 45 to 47, and dates before March 1900 |
+| `not-a-workbook.docx` | LibreOffice 24.2.7.2, from the desktop fixture `document-smoke.csv` | a Word document, also a zip, that is not a workbook |
 | `large-weather.xlsx` | XlsxWriter 3.2.9, constant-memory mode | 100,000 data rows: the desktop weather readings, repeated |
 | `hostile/truncated.xlsx` | the first half of `features.xlsx` | an interrupted download |
 | `hostile/doctype.xlsx` | `features.xlsx` with a DOCTYPE and an entity added to its shared strings | refused |

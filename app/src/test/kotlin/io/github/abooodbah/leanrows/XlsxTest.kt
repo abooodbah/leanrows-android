@@ -102,9 +102,11 @@ class XlsxTest {
         assertTrue(XlsxBook.recognises("download", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", zip))
         assertTrue(XlsxBook.recognises("download", "application/octet-stream", zip))
         assertFalse(XlsxBook.recognises("rows.csv", "text/csv", text))
-        // A zip that is not a workbook, such as a .docx, is not taken for one.
-        val docx = File("src/sharedTest/fixtures/desktop/document-smoke.csv").readBytes()
+        // A zip that is not a workbook, such as a .docx, is not taken for one,
+        // even when it arrives without a useful name or type.
+        val docx = File(fixtures, "not-a-workbook.docx").readBytes().copyOf(4096)
         assertFalse(XlsxBook.recognises("notes.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", docx))
+        assertFalse(XlsxBook.recognises("download", "application/octet-stream", docx))
     }
 
     private fun trimmed(cells: List<String>): List<String> = cells.dropLastWhile { it.isEmpty() }

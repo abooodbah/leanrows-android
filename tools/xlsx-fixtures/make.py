@@ -133,6 +133,42 @@ def by_openpyxl() -> None:
     book.save(OUT / "openpyxl-stations.xlsx")
 
 
+def builtin_formats() -> None:
+    """openpyxl writes Excel's built-in number format ids (14 to 22, 45 to 47)
+    when a cell is given one of their format codes, as Excel itself does. Dates
+    before March 1900 get Excel's serials, which count a 29 February 1900."""
+    from openpyxl.styles.numbers import BUILTIN_FORMATS
+    book = openpyxl.Workbook()
+    sheet = book.active
+    sheet.title = "Built-in"
+    sheet.append(["Format id", "Format code", "Value"])
+    moment = datetime.datetime(2026, 1, 1, 6, 30, 15)
+    for number in list(range(14, 23)) + [45, 46, 47]:
+        value = moment.time() if number in (18, 19, 20, 21, 45, 46, 47) else moment
+        sheet.append([number, BUILTIN_FORMATS[number], value])
+        sheet.cell(sheet.max_row, 3).number_format = BUILTIN_FORMATS[number]
+    for day in (datetime.date(1900, 1, 1), datetime.date(1900, 2, 28), datetime.date(1900, 3, 1)):
+        sheet.append([14, BUILTIN_FORMATS[14], day])
+        sheet.cell(sheet.max_row, 3).number_format = BUILTIN_FORMATS[14]
+    book.save(OUT / "openpyxl-builtin-formats.xlsx")
+
+
+def not_a_workbook() -> None:
+    """A Word document, also a zip, that must not be taken for a workbook."""
+    with tempfile.TemporaryDirectory() as work:
+        source = pathlib.Path(work) / "not-a-workbook.txt"
+        shutil.copy(DESKTOP / "document-smoke.csv", source)
+        subprocess.run(
+            [
+                "soffice", "--headless", "--norestore",
+                "-env:UserInstallation=file://" + work + "/profile",
+                "--convert-to", "docx", "--outdir", work, str(source),
+            ],
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        shutil.copy(pathlib.Path(work) / "not-a-workbook.docx", OUT / "not-a-workbook.docx")
+
+
 def large() -> None:
     """100,000 data rows: the desktop weather readings, repeated, in constant-memory mode."""
     with open(DESKTOP / "weather-stations.csv", newline="", encoding="utf-8") as source:
@@ -198,6 +234,8 @@ def main() -> None:
     inline_strings()
     date_1904()
     by_openpyxl()
+    builtin_formats()
+    not_a_workbook()
     large()
     hostile()
     print("wrote", sorted(str(p.relative_to(OUT)) for p in OUT.rglob("*.xlsx")))

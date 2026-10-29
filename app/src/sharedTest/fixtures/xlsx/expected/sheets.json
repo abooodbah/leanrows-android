@@ -18,6 +18,9 @@
   "large-weather.xlsx": [
     "Readings"
   ],
+  "openpyxl-builtin-formats.xlsx": [
+    "Built-in"
+  ],
   "openpyxl-stations.xlsx": [
     "Stations"
   ],
