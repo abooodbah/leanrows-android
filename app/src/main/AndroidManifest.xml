@@ -33,8 +33,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- The formats the desktop app opens: CSV, TSV, JSON Lines and
-                 plain-text logs. text/plain is included because file managers
+            <!-- The text formats the desktop app opens: CSV, TSV, JSON Lines
+                 and plain-text logs. text/plain is included because file managers
                  label .log and .txt files that way. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -50,6 +50,15 @@
                 <data android:mimeType="application/x-ndjson" />
                 <data android:mimeType="application/jsonl" />
                 <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <!-- Excel workbooks, read-only. See docs/XLSX.md. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </intent-filter>
 
             <!-- Some apps send these files as generic binary data, and mail
@@ -72,6 +81,8 @@
                 <data android:pathPattern=".*\\.ndjson" />
                 <data android:pathPattern=".*\\.log" />
                 <data android:pathPattern=".*\\..*\\.log" />
+                <data android:pathPattern=".*\\.xlsx" />
+                <data android:pathPattern=".*\\..*\\.xlsx" />
             </intent-filter>
 
             <intent-filter>
@@ -81,6 +92,7 @@
                 <data android:mimeType="text/comma-separated-values" />
                 <data android:mimeType="text/tab-separated-values" />
                 <data android:mimeType="application/x-ndjson" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </intent-filter>
         </activity>
     </application>

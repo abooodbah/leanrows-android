@@ -29,6 +29,12 @@
             android:textSize="17sp" />
 
         <Button
+            android:id="@+id/sheet"
+            style="@style/ToolbarButton"
+            android:text="@string/sheet"
+            android:visibility="gone" />
+
+        <Button
             android:id="@+id/find"
             style="@style/ToolbarButton"
             android:text="@string/find" />

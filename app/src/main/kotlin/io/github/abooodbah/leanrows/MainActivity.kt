@@ -26,7 +26,11 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.os.ParcelFileDescriptor
+import java.io.File
 import java.io.FileNotFoundException
+import java.io.FileOutputStream
+import java.io.FilterOutputStream
 import java.io.IOException
 import java.text.NumberFormat
 import java.util.concurrent.ExecutorService
@@ -57,6 +61,14 @@ class MainActivity : Activity() {
     private var document: Document? = null
     private var drawnReported = false
 
+    /** An open .xlsx file. Its sheets are shown one at a time, each as CSV. */
+    private class Workbook(val book: XlsxBook, val source: DescriptorSource) : AutoCloseable {
+        override fun close() {
+            book.close()
+            source.close()
+        }
+    }
+
     /** One open file and the threads working on it. */
     private inner class Document(
         val name: String,
@@ -64,7 +76,11 @@ class MainActivity : Activity() {
         val closeable: AutoCloseable?,
         val state: TableState,
         val generation: Int,
+        val workbook: Workbook? = null,
+        val sheet: Int = 0,
     ) {
+        /** Set when another sheet of the same workbook replaces this one. */
+        var keepWorkbook = false
         val scanThread: ExecutorService = Executors.newSingleThreadExecutor()
         val readThread: ExecutorService = Executors.newSingleThreadExecutor()
         val findThread: ExecutorService = Executors.newSingleThreadExecutor()
@@ -91,12 +107,17 @@ class MainActivity : Activity() {
             readThread.shutdownNow()
             findThread.shutdownNow()
             // Close the file after the threads are done with it.
+            val workbook = if (keepWorkbook) null else workbook
             Thread {
                 scanThread.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)
                 readThread.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)
                 findThread.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)
                 try {
                     closeable?.close()
+                } catch (ignored: Exception) {
+                }
+                try {
+                    workbook?.close()
                 } catch (ignored: Exception) {
                 }
             }.start()
@@ -153,6 +174,7 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.open).setOnClickListener { pickFile() }
         findViewById<Button>(R.id.message_open).setOnClickListener { pickFile() }
         findViewById<Button>(R.id.go_to).setOnClickListener { askForRow() }
+        findViewById<Button>(R.id.sheet).setOnClickListener { askForSheet() }
         findViewById<Button>(R.id.find).setOnClickListener { showFindBar() }
         findViewById<Button>(R.id.find_close).setOnClickListener { hideFindBar() }
         findViewById<Button>(R.id.find_next).setOnClickListener { find(forward = true) }
@@ -250,7 +272,19 @@ class MainActivity : Activity() {
                 main.post { if (generation.get() == opening) openFailed(error) }
                 return@Thread
             }
-            val format = Format.infer(result.name, type ?: contentResolver.getType(uri), sample)
+            val mimeType = type ?: contentResolver.getType(uri)
+            if (XlsxBook.recognises(result.name, mimeType, sample)) {
+                val workbook = try {
+                    Workbook(XlsxBook.open(result.source), result.source)
+                } catch (error: Exception) {
+                    result.source.close()
+                    main.post { if (generation.get() == opening) openFailed(error) }
+                    return@Thread
+                }
+                showSheet(result.name, workbook, 0, opening)
+                return@Thread
+            }
+            val format = Format.infer(result.name, mimeType, sample)
             main.post {
                 if (generation.get() == opening) {
                     show(result.name, Table(result.source, format), result.source, opening)
@@ -259,6 +293,90 @@ class MainActivity : Activity() {
                 }
             }
         }.start()
+    }
+
+    /**
+     * Writes sheet [index] of [workbook] as CSV into the cache and shows it.
+     * Runs on a worker thread. The CSV is unlinked once it is open.
+     */
+    private fun showSheet(name: String, workbook: Workbook, index: Int, opening: Int) {
+        val sheet = workbook.book.sheets[index]
+        main.post { if (generation.get() == opening) status.text = "Reading sheet ${sheet.name}…" }
+        val folder = File(cacheDir, "sheets").apply { mkdirs() }
+        val cancelled = { generation.get() != opening }
+        val source = try {
+            val file = File.createTempFile("sheet", ".csv", folder)
+            try {
+                FileOutputStream(file).use { output ->
+                    workbook.book.writeCsv(index, SpaceCheck(output, folder), cancelled) { rows ->
+                        main.post {
+                            if (generation.get() == opening) status.text = "Reading sheet ${sheet.name}: ${numbers.format(rows)} rows so far"
+                        }
+                    }
+                }
+                val copy = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                DescriptorSource(copy, copy.statSize)
+            } finally {
+                file.delete()
+            }
+        } catch (error: Exception) {
+            main.post {
+                if (generation.get() == opening) {
+                    openFailed(error)
+                    workbook.close()
+                } else if (document?.workbook !== workbook) {
+                    workbook.close()
+                }
+            }
+            return
+        }
+        main.post {
+            if (generation.get() == opening) {
+                show(name, Table(source, Format.CSV), source, opening, workbook, index)
+            } else {
+                source.close()
+                if (document?.workbook !== workbook) workbook.close()
+            }
+        }
+    }
+
+    /** Stops writing a sheet before the device runs out of space. */
+    private class SpaceCheck(output: FileOutputStream, private val folder: File) : FilterOutputStream(output) {
+        private var written = 0L
+
+        override fun write(b: Int) {
+            out.write(b)
+            counted(1)
+        }
+
+        override fun write(b: ByteArray, off: Int, len: Int) {
+            out.write(b, off, len)
+            counted(len)
+        }
+
+        private fun counted(bytes: Int) {
+            written += bytes
+            if (written % (8L * 1024 * 1024) < bytes && folder.usableSpace < Sources.RESERVE_BYTES) throw NotEnoughSpace()
+        }
+    }
+
+    private fun askForSheet() {
+        val document = document ?: return
+        val workbook = document.workbook ?: return
+        val names = workbook.book.sheets.map { it.name }.toTypedArray()
+        dialogForTest = AlertDialog.Builder(this)
+            .setTitle("Sheet")
+            .setItems(names) { _, which -> if (which != document.sheet) switchSheet(document, which) }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    private fun switchSheet(current: Document, index: Int) {
+        val workbook = current.workbook ?: return
+        if (this.document !== current) return
+        current.keepWorkbook = true
+        val opening = begin()
+        Thread { showSheet(current.name, workbook, index, opening) }.start()
     }
 
     private fun openText(text: String, type: String?) {
@@ -274,14 +392,24 @@ class MainActivity : Activity() {
         document?.close()
         document = null
         list.adapter = null
+        findViewById<View>(R.id.sheet).visibility = View.GONE
         hideFindBar()
         return opening
     }
 
-    private fun show(name: String, table: Table, closeable: AutoCloseable?, opening: Int) {
-        val state = TableState(style, style.columns(table.format.delimiter == null))
+    private fun show(
+        name: String,
+        table: Table,
+        closeable: AutoCloseable?,
+        opening: Int,
+        workbook: Workbook? = null,
+        sheet: Int = 0,
+    ) {
+        val state = TableState(style, style.columns(table.format.delimiter == null, lettered = workbook != null))
         state.viewportWidth = list.width
-        val document = Document(name, table, closeable, state, opening)
+        val document = Document(name, table, closeable, state, opening, workbook, sheet)
+        findViewById<View>(R.id.sheet).visibility =
+            if (workbook != null && workbook.book.sheets.size > 1) View.VISIBLE else View.GONE
         this.document = document
         title.text = name
         header.state = state
@@ -367,6 +495,7 @@ class MainActivity : Activity() {
                     "stream, which LeanRows has to copy before it can show it."
             is FileNotFoundException, is SecurityException ->
                 "LeanRows could not open this file. The app that shared it may no longer allow reading it."
+            is XlsxException -> error.message.orEmpty()
             else -> "LeanRows could not read this file: ${error.message}"
         }
         title.text = getString(R.string.app_name)
@@ -393,7 +522,8 @@ class MainActivity : Activity() {
             table.scanned -> if (rows == 1L) "1 row" else "${numbers.format(rows)} rows"
             else -> "Indexing: ${numbers.format(rows)} rows so far"
         }
-        parts += when (table.format) {
+        val workbook = document.workbook
+        parts += if (workbook != null) "Excel, sheet ${workbook.book.sheets[document.sheet].name}" else when (table.format) {
             Format.CSV -> "CSV"
             Format.TSV -> "TSV"
             Format.JSONL -> "JSON Lines"
@@ -608,6 +738,7 @@ class MainActivity : Activity() {
             "application/x-ndjson",
             "application/jsonl",
             "text/plain",
+            XlsxBook.MIME_TYPE,
             "application/octet-stream",
         )
     }

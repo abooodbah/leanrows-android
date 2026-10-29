@@ -107,8 +107,10 @@ object Sources {
      * old ones: another window of the app may be copying right now.
      */
     fun clean(cacheDir: File, now: Long = System.currentTimeMillis()) {
-        File(cacheDir, "streams").listFiles()?.forEach { file ->
-            if (now - file.lastModified() > 60 * 60 * 1000L) file.delete()
+        for (folder in listOf("streams", "sheets")) {
+            File(cacheDir, folder).listFiles()?.forEach { file ->
+                if (now - file.lastModified() > 60 * 60 * 1000L) file.delete()
+            }
         }
     }
 }
