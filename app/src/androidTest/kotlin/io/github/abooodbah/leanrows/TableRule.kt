@@ -52,6 +52,7 @@ class Viewer(val scenario: ActivityScenario<MainActivity>) : AutoCloseable {
 
     /** A finger drag across the screen, in pixels. */
     fun drag(fromX: Float, fromY: Float, toX: Float, toY: Float, steps: Int = 12) {
+        Focus.ensure()
         val start = SystemClock.uptimeMillis()
         instrumentation.sendPointerSync(MotionEvent.obtain(start, start, MotionEvent.ACTION_DOWN, fromX, fromY, 0))
         for (step in 1..steps) {
@@ -64,6 +65,7 @@ class Viewer(val scenario: ActivityScenario<MainActivity>) : AutoCloseable {
     }
 
     fun tap(x: Float, y: Float) {
+        Focus.ensure()
         val start = SystemClock.uptimeMillis()
         instrumentation.sendPointerSync(MotionEvent.obtain(start, start, MotionEvent.ACTION_DOWN, x, y, 0))
         instrumentation.sendPointerSync(MotionEvent.obtain(start, start + 50, MotionEvent.ACTION_UP, x, y, 0))

@@ -140,6 +140,7 @@ class TableTest {
         viewer.tap(x, y)
         viewer.waitFor("the cell") { it.dialogForTest?.isShowing == true }
         viewer.onActivity { it.dialogForTest!!.getButton(AlertDialog.BUTTON_POSITIVE).performClick() }
+        Focus.ensure()
         val copied = viewer.onActivity {
             it.getSystemService(ClipboardManager::class.java).primaryClip?.getItemAt(0)?.text?.toString()
         }
