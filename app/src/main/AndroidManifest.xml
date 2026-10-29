@@ -6,9 +6,72 @@
 
     <application
         android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.LeanRows" />
+        android:theme="@style/Theme.LeanRows">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- The formats the desktop app opens: CSV, TSV, JSON Lines and
+                 plain-text logs. text/plain is included because file managers
+                 label .log and .txt files that way. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:mimeType="text/csv" />
+                <data android:mimeType="text/comma-separated-values" />
+                <data android:mimeType="text/x-csv" />
+                <data android:mimeType="application/csv" />
+                <data android:mimeType="text/tab-separated-values" />
+                <data android:mimeType="text/tsv" />
+                <data android:mimeType="application/x-ndjson" />
+                <data android:mimeType="application/jsonl" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <!-- Some apps send these files as generic binary data, and mail
+                 from Windows often labels CSV as an Excel type. Match those by
+                 name only. Each pattern allows a different number of dots
+                 before the extension, because pathPattern is not greedy. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <data android:pathPattern=".*\\.csv" />
+                <data android:pathPattern=".*\\..*\\.csv" />
+                <data android:pathPattern=".*\\.tsv" />
+                <data android:pathPattern=".*\\..*\\.tsv" />
+                <data android:pathPattern=".*\\.jsonl" />
+                <data android:pathPattern=".*\\.ndjson" />
+                <data android:pathPattern=".*\\.log" />
+                <data android:pathPattern=".*\\..*\\.log" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/csv" />
+                <data android:mimeType="text/comma-separated-values" />
+                <data android:mimeType="text/tab-separated-values" />
+                <data android:mimeType="application/x-ndjson" />
+            </intent-filter>
+        </activity>
+    </application>
 
 </manifest>
