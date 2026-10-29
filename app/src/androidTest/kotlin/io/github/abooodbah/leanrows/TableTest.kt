@@ -226,11 +226,26 @@ class TableTest {
     }
 
     @Test
-    fun fileUrisAreRefused() = Viewer.launch(
-        Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse("file:///sdcard/Download/rows.csv"), "text/csv"),
-    ).use { viewer ->
-        viewer.waitFor("a message") { it.messageForTest != null }
-        assertNull(viewer.onActivity { it.tableForTest })
+    fun fileUrisAreRefused() {
+        // A file the app could read with its own access, so the refusal cannot
+        // pass just because the path is unreadable.
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = File(context.filesDir, "weather-stations.csv")
+        context.contentResolver.openInputStream(Viewer.uri("file/desktop/weather-stations.csv"))!!.use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        }
+        try {
+            Viewer.launch(Intent(Intent.ACTION_VIEW).setDataAndType(Uri.fromFile(file), "text/csv")).use { viewer ->
+                viewer.waitFor("a message") { it.messageForTest != null }
+                assertEquals(
+                    "LeanRows opens files that another app shares with it, or that you pick with Open.",
+                    viewer.onActivity { it.messageForTest },
+                )
+                assertNull(viewer.onActivity { it.tableForTest })
+            }
+        } finally {
+            file.delete()
+        }
     }
 
     @Test
