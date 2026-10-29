@@ -307,13 +307,16 @@ class MainActivity : Activity() {
         val source = try {
             val file = File.createTempFile("sheet", ".csv", folder)
             try {
-                FileOutputStream(file).use { output ->
+                val started = SystemClock.uptimeMillis()
+                val written = FileOutputStream(file).use { output ->
                     workbook.book.writeCsv(index, SpaceCheck(output, folder), cancelled) { rows ->
                         main.post {
                             if (generation.get() == opening) status.text = "Reading sheet ${sheet.name}: ${numbers.format(rows)} rows so far"
                         }
                     }
                 }
+                // scripts/measure.sh reads this line.
+                Log.i(TAG, "wrote sheet ${index + 1} as $written CSV rows in ${SystemClock.uptimeMillis() - started} ms")
                 val copy = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                 DescriptorSource(copy, copy.statSize)
             } finally {
