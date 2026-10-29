@@ -48,6 +48,13 @@ public final class DesktopFixtures {
 
     private DesktopFixtures() {}
 
+    /** Writes one fixture to a file: java DesktopFixtures.java NAME OUT. */
+    public static void main(String[] args) throws IOException {
+        try (OutputStream out = new java.io.BufferedOutputStream(new java.io.FileOutputStream(args[1]), 1 << 16)) {
+            write(args[0], out);
+        }
+    }
+
     public static boolean has(String name) {
         return SHA256.containsKey(name);
     }

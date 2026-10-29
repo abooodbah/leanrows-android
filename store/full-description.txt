@@ -1,0 +1,28 @@
+LeanRows is a viewer for large row-based files: CSV, TSV, JSON Lines and plain-text logs. It is for looking, not editing: open an export, a data dump or a log file and scroll through it on your phone.
+
+It reads the file once to find where each row starts, then reads only the rows on screen, so the memory it needs depends on the screen, not on the size of the file.
+
+Open a file from your file manager, from an email attachment or from your browser's downloads with "Open with", share a file or text to LeanRows, or use the Open button inside the app.
+
+What it does:
+- Rows appear while the rest of the file is still being counted
+- Find text anywhere in the file, with an option to match case
+- Go to a row by number
+- Tap a cell to see all of it and copy it
+- Drag sideways to see more columns; the row numbers stay in place
+- A fast scroller for long files
+- Quoted fields with commas and line breaks, as in spreadsheet exports
+- Light and dark themes that follow the system setting
+- Keeps your place when you rotate the phone
+
+Privacy:
+LeanRows has no internet permission, so it cannot send or receive anything over the network. It asks for no permissions at all. It has no analytics, no ads and no accounts. It reads the file you open and never changes it.
+
+Limits:
+- Excel workbooks (.xlsx) are not supported yet.
+- Columns are named Column 1, Column 2 and so on; the first row is shown as a row, not used as headers.
+- A row shows at most 64 columns and the first 4 KB of the row, and a cell shows at most 1,024 characters, as in the desktop version.
+- Text must be UTF-8. Other bytes are shown as \xNN.
+- Some apps share a file only as a stream. LeanRows then copies it into its own storage first, which needs free space the size of the file.
+
+LeanRows works the same way as the desktop version of LeanRows for Windows, with the same rules for splitting rows and fields.

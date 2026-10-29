@@ -52,24 +52,22 @@ class Viewer(val scenario: ActivityScenario<MainActivity>) : AutoCloseable {
 
     /** A finger drag across the screen, in pixels. */
     fun drag(fromX: Float, fromY: Float, toX: Float, toY: Float, steps: Int = 12) {
-        Focus.ensure()
+        val activity = onActivity { it }
         val start = SystemClock.uptimeMillis()
-        instrumentation.sendPointerSync(MotionEvent.obtain(start, start, MotionEvent.ACTION_DOWN, fromX, fromY, 0))
+        Focus.touch(activity, MotionEvent.ACTION_DOWN, start, start, fromX, fromY)
         for (step in 1..steps) {
             val x = fromX + (toX - fromX) * step / steps
             val y = fromY + (toY - fromY) * step / steps
-            instrumentation.sendPointerSync(MotionEvent.obtain(start, start + step * 16L, MotionEvent.ACTION_MOVE, x, y, 0))
+            Focus.touch(activity, MotionEvent.ACTION_MOVE, start, start + step * 16L, x, y)
         }
-        instrumentation.sendPointerSync(MotionEvent.obtain(start, start + (steps + 1) * 16L, MotionEvent.ACTION_UP, toX, toY, 0))
-        instrumentation.waitForIdleSync()
+        Focus.touch(activity, MotionEvent.ACTION_UP, start, start + (steps + 1) * 16L, toX, toY)
     }
 
     fun tap(x: Float, y: Float) {
-        Focus.ensure()
+        val activity = onActivity { it }
         val start = SystemClock.uptimeMillis()
-        instrumentation.sendPointerSync(MotionEvent.obtain(start, start, MotionEvent.ACTION_DOWN, x, y, 0))
-        instrumentation.sendPointerSync(MotionEvent.obtain(start, start + 50, MotionEvent.ACTION_UP, x, y, 0))
-        instrumentation.waitForIdleSync()
+        Focus.touch(activity, MotionEvent.ACTION_DOWN, start, start, x, y)
+        Focus.touch(activity, MotionEvent.ACTION_UP, start, start + 50, x, y)
     }
 
     override fun close() = scenario.close()
