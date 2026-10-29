@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The desktop site's neutral palette and accent (site/styles.css). -->
+    <color name="canvas">#FAF9F7</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="ink">#1A1917</color>
+    <color name="muted">#5A554C</color>
+    <color name="rule">#E8E4DC</color>
+    <color name="accent">#1D4ED8</color>
+    <color name="ic_launcher_background">#0E0D0B</color>
+</resources>

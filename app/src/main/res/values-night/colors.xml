@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="canvas">#0E0D0B</color>
+    <color name="surface">#1A1917</color>
+    <color name="ink">#FAF9F7</color>
+    <color name="muted">#A7A195</color>
+    <color name="rule">#2B2924</color>
+    <color name="accent">#8AA8F0</color>
+</resources>

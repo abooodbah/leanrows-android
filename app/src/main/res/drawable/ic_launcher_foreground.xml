@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- branding/leanrows-icon.svg from the desktop repository, without its dark
+     square, scaled into the adaptive icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.137"
+        android:scaleY="0.137"
+        android:translateX="18.928"
+        android:translateY="18.928">
+        <path
+            android:fillColor="#1D4ED8"
+            android:pathData="M106,96h40a18,18 0,0 1 18,18v36a18,18 0,0 1 -18,18h-40a18,18 0,0 1 -18,-18v-36a18,18 0,0 1 18,-18z" />
+        <path
+            android:fillColor="#F4F2EE"
+            android:pathData="M198,96h76a18,18 0,0 1 18,18v36a18,18 0,0 1 -18,18h-76a18,18 0,0 1 -18,-18v-36a18,18 0,0 1 18,-18z" />
+        <path
+            android:fillColor="#F4F2EE"
+            android:pathData="M326,96h80a18,18 0,0 1 18,18v36a18,18 0,0 1 -18,18h-80a18,18 0,0 1 -18,-18v-36a18,18 0,0 1 18,-18z" />
+        <path
+            android:fillColor="#1D4ED8"
+            android:pathData="M106,220h40a18,18 0,0 1 18,18v36a18,18 0,0 1 -18,18h-40a18,18 0,0 1 -18,-18v-36a18,18 0,0 1 18,-18z" />
+        <path
+            android:fillColor="#F4F2EE"
+            android:pathData="M198,220h76a18,18 0,0 1 18,18v36a18,18 0,0 1 -18,18h-76a18,18 0,0 1 -18,-18v-36a18,18 0,0 1 18,-18z" />
+        <path
+            android:fillColor="#F4F2EE"
+            android:pathData="M326,220h80a18,18 0,0 1 18,18v36a18,18 0,0 1 -18,18h-80a18,18 0,0 1 -18,-18v-36a18,18 0,0 1 18,-18z" />
+        <path
+            android:fillColor="#1D4ED8"
+            android:pathData="M106,344h40a18,18 0,0 1 18,18v36a18,18 0,0 1 -18,18h-40a18,18 0,0 1 -18,-18v-36a18,18 0,0 1 18,-18z" />
+        <path
+            android:fillColor="#F4F2EE"
+            android:pathData="M198,344h76a18,18 0,0 1 18,18v36a18,18 0,0 1 -18,18h-76a18,18 0,0 1 -18,-18v-36a18,18 0,0 1 18,-18z" />
+        <path
+            android:fillColor="#F4F2EE"
+            android:pathData="M326,344h80a18,18 0,0 1 18,18v36a18,18 0,0 1 -18,18h-80a18,18 0,0 1 -18,-18v-36a18,18 0,0 1 18,-18z" />
+    </group>
+</vector>
