@@ -13,6 +13,7 @@ import org.w3c.dom.Element
  */
 class ManifestTest {
     private val android = "http://schemas.android.com/apk/res/android"
+    private val TOOLS = "http://schemas.android.com/tools"
 
     private val manifest: Element by lazy {
         val factory = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
@@ -37,7 +38,10 @@ class ManifestTest {
 
     @Test
     fun requestsNoPermissions() {
-        val requested = elements("uses-permission") + elements("uses-permission-sdk-23")
+        // Entries marked tools:node="remove" take a library's request out of
+        // the merged manifest; CI checks the merged result with aapt2.
+        val requested = (elements("uses-permission") + elements("uses-permission-sdk-23"))
+            .filter { it.getAttributeNS(TOOLS, "node") != "remove" }
         assertEquals(emptyList<String>(), requested.map { it.attr("name") })
     }
 
