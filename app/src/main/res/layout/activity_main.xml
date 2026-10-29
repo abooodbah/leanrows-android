@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/surface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="4dp">
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="middle"
+            android:singleLine="true"
+            android:text="@string/app_name"
+            android:textColor="@color/ink"
+            android:textSize="17sp" />
+
+        <Button
+            android:id="@+id/find"
+            style="@style/ToolbarButton"
+            android:text="@string/find" />
+
+        <Button
+            android:id="@+id/go_to"
+            style="@style/ToolbarButton"
+            android:text="@string/go_to_row" />
+
+        <Button
+            android:id="@+id/open"
+            style="@style/ToolbarButton"
+            android:text="@string/open" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/find_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="4dp"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/find_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/find_hint"
+            android:imeOptions="actionSearch"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:singleLine="true"
+            android:textColor="@color/ink"
+            android:textColorHint="@color/muted"
+            android:textSize="15sp" />
+
+        <CheckBox
+            android:id="@+id/match_case"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="@string/match_case"
+            android:textColor="@color/ink"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/find_previous"
+            style="@style/ToolbarButton"
+            android:contentDescription="@string/find_previous"
+            android:minWidth="48dp"
+            android:text="@string/previous_symbol" />
+
+        <Button
+            android:id="@+id/find_next"
+            style="@style/ToolbarButton"
+            android:contentDescription="@string/find_next"
+            android:minWidth="48dp"
+            android:text="@string/next_symbol" />
+
+        <Button
+            android:id="@+id/find_close"
+            style="@style/ToolbarButton"
+            android:text="@string/close" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:paddingStart="16dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:textColor="@color/muted"
+        android:textSize="13sp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/canvas">
+
+        <LinearLayout
+            android:id="@+id/table"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <io.github.abooodbah.leanrows.HeaderView
+                android:id="@+id/header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rows"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scrollbars="none"
+                app:fastScrollEnabled="true"
+                app:fastScrollHorizontalThumbDrawable="@drawable/fast_scroll_thumb"
+                app:fastScrollHorizontalTrackDrawable="@drawable/fast_scroll_track"
+                app:fastScrollVerticalThumbDrawable="@drawable/fast_scroll_thumb"
+                app:fastScrollVerticalTrackDrawable="@drawable/fast_scroll_track" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/message"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="32dp">
+
+            <TextView
+                android:id="@+id/message_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.2"
+                android:text="@string/empty"
+                android:textColor="@color/ink"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/message_open"
+                style="@style/ToolbarButton"
+                android:layout_marginTop="16dp"
+                android:text="@string/open_file" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

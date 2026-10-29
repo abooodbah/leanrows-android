@@ -88,6 +88,10 @@ kotlin {
 }
 
 dependencies {
+    // The one library in the app: a recycling list with a fast scroller, so
+    // a 100,000-row file keeps only the rows on screen as views.
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
+
     testImplementation("junit:junit:4.13.2")
     // org.json is part of Android, but only as stubs in JVM tests.
     testImplementation("org.json:json:20240303")
