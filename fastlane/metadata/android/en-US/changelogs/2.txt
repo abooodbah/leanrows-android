@@ -1,0 +1,1 @@
+Opens Excel .xlsx workbooks, read-only. The first visible sheet opens with columns A, B, C, and a Sheet button lists the others. Cells show text, saved formula results, true and false, errors, and dates and times. Nothing is calculated. Damaged or oversized files are refused with a message that names the limit. No new permissions and no network.

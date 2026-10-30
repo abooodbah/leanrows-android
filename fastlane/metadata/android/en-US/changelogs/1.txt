@@ -1,0 +1,1 @@
+First release. A read-only viewer for large CSV, TSV, JSON Lines and log files that keeps only the rows on screen in memory. Find with match case, go to a row, tap a cell to see and copy it, pan sideways with the row numbers fixed, and a fast scroller. No permissions and no network.
