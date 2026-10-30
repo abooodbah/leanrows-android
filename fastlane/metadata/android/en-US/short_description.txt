@@ -1,0 +1,1 @@
+Open big CSV, TSV, JSON Lines, log and Excel files. Read-only, no network
