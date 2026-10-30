@@ -1,0 +1,16 @@
+{
+  "name": "LeanRows for Android",
+  "short_name": "LeanRows",
+  "description": "A read-only CSV and log file viewer for Android, in a closed test on Google Play.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#faf9f7",
+  "theme_color": "#1a1917",
+  "icons": [
+    {
+      "src": "assets/leanrows-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
