@@ -15,7 +15,7 @@ Work in progress. Not yet on Google Play.
 ## Try it (closed test)
 
 LeanRows for Android is in a closed test on Google Play before its public release.
-To try it:
+To try it, follow the steps below or on the [LeanRows for Android site](https://abooodbah.github.io/leanrows-android/):
 
 1. Join the [Lean Apps testers group](https://groups.google.com/g/lean-apps-testers) with the Google account you use
    on your phone.
