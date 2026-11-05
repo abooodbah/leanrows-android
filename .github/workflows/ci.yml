@@ -46,6 +46,18 @@ jobs:
             exit 1
           fi
 
+      - name: Check the release APK keeps only English resources
+        # The app is in English; androidx.core brings strings in many languages.
+        run: |
+          aapt2="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2"
+          "$aapt2" dump configurations app/build/outputs/apk/release/app-release.apk > configurations.txt
+          languages="$(grep -E '^([a-z]{2,3}(-r[A-Z]{2})?|b\+[a-zA-Z+]+)(-|$)' configurations.txt | grep -vE '^en(-|$)' || true)"
+          if [ -n "$languages" ]; then
+            echo "::error::The release APK has resources for other languages: $(echo $languages | tr '\n' ' ')"
+            exit 1
+          fi
+          echo "Configurations: $(tr '\n' ' ' < configurations.txt)"
+
       - name: Report sizes
         run: |
           {
