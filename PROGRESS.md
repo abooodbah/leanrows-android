@@ -2,6 +2,62 @@
 
 Updated with every merge. The next session starts here.
 
+## Plan for 0.2.0
+
+Work in this order, one pull request per change, each merged when CI is
+green. Tests first: the failing tests go in their own commit before the
+change.
+
+1. Efficiency review. Extend the budgets job (`scripts/measure.sh`) so it
+   also measures Find, a system theme switch, a rotation and allocations
+   while scrolling, on release builds. Write the findings into the table
+   below. Fix the clear wins, one per pull request, with before and after
+   numbers. List the rest for the maintainer.
+2. Column sorting, ported from desktop LeanRows 0.4.0 (see below).
+   - Sort engine first (JVM tests): text and numeric order with the
+     desktop's rules, ties in source order, bounded memory, temporary files
+     in the app's cache. Unlike desktop 0.4.0, the file is read once from
+     start to end (no read per row) and runs are joined by a multi-way
+     merge (not two at a time). Measured on 10 million rows.
+   - Then the screen: tap a column title to sort, tap again to reverse,
+     long-press it for text or numeric order, tap Row to restore the
+     source order, Cancel while it runs. Row numbers, Find and Go to row
+     keep the file's own numbers. A free-space check before a large sort.
+     An .xlsx sheet is not sorted; the app says so. Emulator tests first.
+3. The five themes of LeanMark 0.6.0 (System, Light, Dark, Dim, Dusk) with
+   its exact colours, the theme button with its coloured dot and a tooltip
+   that names the theme, and a settings button that opens a sheet with
+   theme and zoom. Zoom enlarges the table only. Both are remembered.
+4. Version 0.2.0: version bump pull request, annotated tag v0.2.0, a GitHub
+   pre-release with plain notes, the "Release files" workflow for the APK,
+   AAB and .sha256 files, and the "Play bundle" workflow. Nothing is
+   uploaded to Google Play.
+
+## Desktop features the app lacks
+
+Desktop releases after 2026-10-29: only 0.4.0 (2026-11-02), column
+sorting. 0.3.0 (2026-10-29, .xlsx) is already in the app since 0.1.1.
+
+| Desktop 0.4.0 feature | On Android |
+| --- | --- |
+| Click a column header to sort the whole file ascending, click again to reverse | Ported: tap a column title |
+| Right-click a header for text or numeric order; the same commands in the overflow menu | Ported: long-press a column title, and the More menu |
+| Click the Row header, or Restore source order, to go back | Ported: tap Row, or More > Restore source order |
+| Cancel sort keeps the view you had | Ported: Cancel next to the progress, and in More |
+| Text order by bytes, case sensitive; exact numeric order (integers, decimals, exponents); numbers, then text, then empty values in both directions; ties keep the file's order | Ported with the desktop's test cases |
+| Row numbers, Find and Go to row keep the original numbers | Ported |
+| 16 MiB sort memory, temporary files in the app's data folder, removed when done and after a crash | Ported: 8 MiB, files in the app's cache, unlinked as soon as they are open so nothing is left behind |
+| A sort that will not fit on the drive or in the 8 GiB limit is refused before it starts | Ported: checked against the free space of the app's cache |
+| Sorting a .xlsx workbook says it does not work yet | Ported (the app could sort the sheet's CSV copy, but keeps the desktop rule) |
+| One sort at a time across tabs | Skipped: the app has one file open at a time |
+| Sort commands in the overflow menu and keyboard access | The More menu has them; no keyboard shortcuts on a phone |
+
+Skipped from earlier desktop releases, and why: tabs and several open
+files (0.2.0; Android shows one file per window, and the system's recent
+apps list already switches between files), keyboard shortcuts (no
+keyboard on most phones), the installer and Explorer registration
+(Android uses the open-with filters in the manifest).
+
 ## Done
 
 - Gradle project: Kotlin, classic Views. One library: androidx.recyclerview
@@ -33,7 +89,8 @@ Updated with every merge. The next session starts here.
 
 ## In progress
 
-- Release v0.1.1.
+- Efficiency review: measuring (PR "Measure find, theme switch, rotation
+  and allocations").
 
 ## Remaining
 

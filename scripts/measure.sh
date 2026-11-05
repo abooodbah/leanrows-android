@@ -50,6 +50,14 @@ done
 
 log() { echo "[measure] $*" >&2; }
 
+# Root lets the script ask ART for its allocation count (SIGQUIT dump). The
+# AOSP emulator image allows it; elsewhere allocations are reported as NA.
+ROOT=no
+if adb root >/dev/null 2>&1; then
+  adb wait-for-device
+  if [ "$(adb shell id -u | tr -d '\r')" = 0 ]; then ROOT=yes; fi
+fi
+
 install() {
   adb install -r -d "${APKS[$1]}" >/dev/null
 }
@@ -94,6 +102,69 @@ minus() {
 
 plus() {
   if [[ "$1" =~ ^[0-9]+$ && "$2" =~ ^[0-9]+$ ]]; then echo $(($1 + $2)); else echo NA; fi
+}
+
+# The app's own log line matching $1, waiting up to $2 seconds; prints it or nothing.
+wait_log() {
+  local pattern=$1 limit=$2 line
+  for _ in $(seq 1 $((limit * 10))); do
+    line=$(adb logcat -d -v epoch -s LeanRows:I LeanRowsMeasure:I | grep -E "$pattern" | head -n 1 || true)
+    if [ -n "$line" ]; then
+      echo "$line"
+      return
+    fi
+    sleep 0.1
+  done
+}
+
+# Milliseconds between the measure marker and the app's line matching $1.
+since_mark() {
+  local line mark
+  line=$(wait_log "$1" "$2")
+  mark=$(adb logcat -d -v epoch -s LeanRowsMeasure:I | grep -m 1 "mark" || true)
+  if [ -z "$line" ] || [ -z "$mark" ]; then echo NA; return; fi
+  awk -v a="$(awk '{ print $1 }' <<<"$mark")" -v b="$(awk '{ print $1 }' <<<"$line")" 'BEGIN { printf "%d\n", (b - a) * 1000 }'
+}
+
+mark() {
+  adb logcat -c
+  adb shell log -t LeanRowsMeasure mark
+}
+
+ui_dump() {
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 || true
+  adb shell cat /sdcard/ui.xml 2>/dev/null | tr -d '\r' || true
+}
+
+# The centre of the view with resource id $2 in the dump $1, as "x y".
+centre_of() {
+  grep -o "resource-id=\"$PKG:id/$2\"[^>]*bounds=\"\[[0-9]*,[0-9]*\]\[[0-9]*,[0-9]*\]\"" <<<"$1" | head -n 1 |
+    sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
+    awk '{ print int(($1 + $3) / 2), int(($2 + $4) / 2) }' || true
+}
+
+# The number of the first row on screen, from the row views' descriptions.
+first_row() {
+  grep -o 'content-desc="Row [0-9]*' <<<"$(ui_dump)" | head -n 1 | sed 's/.*Row //' || true
+}
+
+# Objects allocated by the app since it started, from ART's SIGQUIT dump.
+allocations() {
+  if [ "$ROOT" != yes ]; then echo NA; return; fi
+  local pid newest value
+  pid=$(adb shell pidof "$PKG" | tr -d '\r' || true)
+  if [ -z "$pid" ]; then echo NA; return; fi
+  adb shell rm -f '/data/anr/*' >/dev/null 2>&1 || true
+  adb shell kill -3 "$pid" || true
+  for _ in $(seq 1 50); do
+    newest=$(adb shell ls -t /data/anr 2>/dev/null | tr -d '\r' | head -n 1 || true)
+    if [ -n "$newest" ]; then
+      value=$(adb shell cat "/data/anr/$newest" 2>/dev/null | tr -d '\r' | grep -m 1 "Total number of allocations" | awk '{ print $NF }' || true)
+      if [ -n "$value" ]; then echo "$value"; return; fi
+    fi
+    sleep 0.2
+  done
+  echo NA
 }
 
 # The empty app first, on the same emulator: its start time is subtracted.
@@ -197,7 +268,7 @@ done
 open_document "$LARGE" "$LARGE_TYPE" >/dev/null
 sleep 20
 
-declare -A APP_PSS=() RENDERER_PSS=() TOTAL_PSS=() LARGE_DRAWN=() INDEXED=() JANK=() FRAMES=() P90=()
+declare -A APP_PSS=() RENDERER_PSS=() TOTAL_PSS=() LARGE_DRAWN=() INDEXED=() JANK=() FRAMES=() P90=() SCROLL_ALLOCS=()
 for label in "${LABELS[@]}"; do
   install "$label"
   for run in 1 2 3; do
@@ -229,16 +300,92 @@ for label in "${LABELS[@]}"; do
     P90[$label]=NA
     continue
   fi
+  before=$(allocations)
   adb shell dumpsys gfxinfo "$PKG" reset >/dev/null
   for _ in $(seq 1 10); do
     adb shell input swipe 540 1800 540 600 250
     sleep 0.5
   done
   gfx=$(adb shell dumpsys gfxinfo "$PKG" | tr -d '\r')
+  after=$(allocations)
+  SCROLL_ALLOCS[$label]=$(minus "$after" "$before")
+  log "$label scrolling: $before objects allocated before the swipes, $after after"
   FRAMES[$label]=$(sed -n 's/^Total frames rendered: *//p' <<<"$gfx" | head -n 1)
   JANK[$label]=$(sed -n 's/^Janky frames: *//p' <<<"$gfx" | head -n 1)
   P90[$label]=$(sed -n 's/^90th percentile: *//p' <<<"$gfx" | head -n 1)
   log "$label scrolling: frames ${FRAMES[$label]:-NA}, janky ${JANK[$label]:-NA}, p90 ${P90[$label]:-NA}"
+done
+
+# Find, a system theme switch and a rotation with the large file open. Each
+# runs on a fresh start of the app. NA means the step could not be driven.
+declare -A FIND_NEXT=() FIND_PREVIOUS=() THEME_MS=() THEME_ROWS=() ROTATE_FRAMES=() ROTATE_JANK=() ROTATE_ROWS=() ROTATE_PSS=()
+open_large() {
+  open_document "$LARGE" "$LARGE_TYPE" >/dev/null
+  fully_drawn 90 >/dev/null
+  indexed_ms 60 >/dev/null
+  sleep 2
+}
+adb shell settings put system accelerometer_rotation 0 >/dev/null 2>&1 || true
+adb shell settings put system user_rotation 0 >/dev/null 2>&1 || true
+adb shell cmd uimode night no >/dev/null 2>&1 || true
+for label in "${LABELS[@]}"; do
+  install "$label"
+
+  # Find with no match: next walks the file forward once, previous backward.
+  open_large
+  dump=$(ui_dump)
+  find_button=$(centre_of "$dump" find)
+  if [ -n "$find_button" ]; then
+    adb shell input tap $find_button
+    sleep 1
+    adb shell input text zzqxj
+    sleep 1
+    dump=$(ui_dump)
+    next_button=$(centre_of "$dump" find_next)
+    previous_button=$(centre_of "$dump" find_previous)
+    if [ -n "$next_button" ] && [ -n "$previous_button" ]; then
+      adb logcat -c
+      adb shell input tap $next_button
+      FIND_NEXT[$label]=$(wait_log "find next" 120 | grep -o "in [0-9]* ms" | awk '{ print $2 }' || true)
+      adb logcat -c
+      adb shell input tap $previous_button
+      FIND_PREVIOUS[$label]=$(wait_log "find previous" 300 | grep -o "in [0-9]* ms" | awk '{ print $2 }' || true)
+    fi
+  fi
+  log "$label find with no match: next ${FIND_NEXT[$label]:-NA} ms, previous ${FIND_PREVIOUS[$label]:-NA} ms"
+
+  # The system switches to dark: from the switch until the rows are drawn again.
+  open_large
+  for _ in 1 2 3; do adb shell input swipe 540 1800 540 600 250; sleep 0.5; done
+  sleep 1
+  before=$(first_row)
+  mark
+  adb shell cmd uimode night yes >/dev/null
+  THEME_MS[$label]=$(since_mark "rows drawn|theme applied" 60)
+  sleep 2
+  after=$(first_row)
+  THEME_ROWS[$label]="${before:-NA} to ${after:-NA}"
+  log "$label system dark mode: ${THEME_MS[$label]} ms, first row on screen ${THEME_ROWS[$label]}"
+  adb shell cmd uimode night no >/dev/null
+  sleep 3
+
+  # Rotation to landscape: frames drawn, where the list is, and memory.
+  open_large
+  for _ in 1 2 3; do adb shell input swipe 540 1800 540 600 250; sleep 0.5; done
+  sleep 1
+  before=$(first_row)
+  adb shell dumpsys gfxinfo "$PKG" reset >/dev/null
+  adb shell settings put system user_rotation 1
+  sleep 4
+  gfx=$(adb shell dumpsys gfxinfo "$PKG" | tr -d '\r')
+  ROTATE_FRAMES[$label]=$(sed -n 's/^Total frames rendered: *//p' <<<"$gfx" | head -n 1)
+  ROTATE_JANK[$label]=$(sed -n 's/^Janky frames: *//p' <<<"$gfx" | head -n 1)
+  after=$(first_row)
+  ROTATE_ROWS[$label]="${before:-NA} to ${after:-NA}"
+  ROTATE_PSS[$label]=$(pss_of "$PKG")
+  log "$label rotation: frames ${ROTATE_FRAMES[$label]:-NA}, janky ${ROTATE_JANK[$label]:-NA}, first row ${ROTATE_ROWS[$label]}, app ${ROTATE_PSS[$label]:-NA} KB"
+  adb shell settings put system user_rotation 0
+  sleep 3
 done
 
 # The workbook: time to write the sheet as CSV, time until its rows are drawn
@@ -313,6 +460,27 @@ row() {
   row "Frames over 10 swipes (software GPU, not a budget check)" "${frames[@]}"
   row "Janky frames over 10 swipes (software GPU, not a budget check)" "${jank[@]}"
   row "90th percentile frame time (software GPU, not a budget check)" "${p90[@]}"
+  allocs=(); find_next=(); find_previous=(); theme_ms=(); theme_rows=(); rotate_frames=(); rotate_jank=(); rotate_rows=(); rotate_pss=()
+  for label in "${LABELS[@]}"; do
+    allocs+=("${SCROLL_ALLOCS[$label]:-NA}")
+    find_next+=("${FIND_NEXT[$label]:-NA}")
+    find_previous+=("${FIND_PREVIOUS[$label]:-NA}")
+    theme_ms+=("${THEME_MS[$label]:-NA}")
+    theme_rows+=("${THEME_ROWS[$label]:-NA}")
+    rotate_frames+=("${ROTATE_FRAMES[$label]:-NA}")
+    rotate_jank+=("${ROTATE_JANK[$label]:-NA}")
+    rotate_rows+=("${ROTATE_ROWS[$label]:-NA}")
+    rotate_pss+=("${ROTATE_PSS[$label]:-NA}")
+  done
+  row "Objects allocated over the 10 swipes (ART count)" "${allocs[@]}"
+  row "Find next, no match, $LARGE_NAME (ms)" "${find_next[@]}"
+  row "Find previous, no match, $LARGE_NAME (ms)" "${find_previous[@]}"
+  row "System switch to dark until rows are drawn again (ms)" "${theme_ms[@]}"
+  row "First row on screen before and after the dark switch" "${theme_rows[@]}"
+  row "Frames drawn while rotating to landscape" "${rotate_frames[@]}"
+  row "Janky frames while rotating (software GPU, not a budget check)" "${rotate_jank[@]}"
+  row "First row on screen before and after rotating" "${rotate_rows[@]}"
+  row "App process PSS after rotating (KB)" "${rotate_pss[@]}"
   if [ -n "${WORKBOOK:-}" ]; then
     sheet=(); sheet_drawn=(); sheet_pss=()
     for label in "${LABELS[@]}"; do
