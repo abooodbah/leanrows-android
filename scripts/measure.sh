@@ -206,7 +206,7 @@ for round in $(seq 1 "$ROUNDS"); do
     for _ in $(seq 1 "$STARTS_PER_ROUND"); do
       total=$(open_document "$SMALL" "$SMALL_TYPE" | sed -n 's/^TotalTime: *//p')
       drawn=$(fully_drawn 10)
-      log "round $round $label: first frame ${total:-NA} ms, drawn $drawn ms"
+      log "round $round $label: first frame ${total:-NA} ms, drawn $drawn ms; $(adb logcat -d -s LeanRows:I | grep -o 'create steps:.*' | head -n 1 || true)"
       # The app's own "phase NAME N ms" lines, from creation to each step.
       while read -r name value; do
         [ -n "$name" ] || continue

@@ -72,6 +72,14 @@ class MainActivity : Activity() {
     private var zoom = Zoom.DEFAULT
     private var palette = Palette.LIGHT
     private var settingsSheet: Dialog? = null
+
+    /**
+     * The colours the window and the system bars have now. At start they are
+     * the XML theme's, which match System in the current light or dark mode,
+     * so a start in those colours does not touch the window: changing the
+     * bars before the first frame cost about 150 ms on the emulator.
+     */
+    private var windowPalette: Palette? = null
     private lateinit var layout: LinearLayoutManager
     private lateinit var style: TableStyle
     private lateinit var pan: HorizontalPan
@@ -187,6 +195,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         created = SystemClock.uptimeMillis()
         setContentView(R.layout.activity_main)
+        val inflated = SystemClock.uptimeMillis()
         root = findViewById(R.id.root)
         title = findViewById(R.id.title)
         status = findViewById(R.id.status)
@@ -205,7 +214,9 @@ class MainActivity : Activity() {
         zoom = saved.zoom
         palette = Palette.of(chosenTheme, systemDark())
         style = TableStyle(this, palette, zoom)
+        val settingsRead = SystemClock.uptimeMillis()
         applyTheme()
+        val themed = SystemClock.uptimeMillis()
         layOutEdgeToEdge()
 
         layout = LinearLayoutManager(this)
@@ -248,6 +259,8 @@ class MainActivity : Activity() {
 
         Sources.clean(cacheDir)
         if (!openFrom(intent)) showMessage(getString(R.string.empty), showOpen = true)
+        // scripts/measure.sh prints this line: where onCreate spends its time.
+        Log.i(TAG, "create steps: layout ${inflated - created} ms, settings ${settingsRead - inflated} ms, theme ${themed - settingsRead} ms, rest ${SystemClock.uptimeMillis() - themed} ms")
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -1022,7 +1035,6 @@ class MainActivity : Activity() {
         val started = SystemClock.uptimeMillis()
         palette = Palette.of(chosenTheme, systemDark())
         style.apply(palette, zoom)
-        window.setBackgroundDrawable(ColorDrawable(palette.canvas))
         for (id in listOf(R.id.root, R.id.toolbar, R.id.find_bar, R.id.status_bar)) findViewById<View>(id).setBackgroundColor(palette.surface)
         findViewById<View>(R.id.table_frame).setBackgroundColor(palette.canvas)
         title.setTextColor(palette.textPrimary)
@@ -1042,11 +1054,16 @@ class MainActivity : Activity() {
         val name = chosenTheme.displayName(systemDark())
         themeButton.contentDescription = "Theme: $name. Activate to change theme."
         themeButton.tooltipText = "Theme: $name"
-        @Suppress("DEPRECATION")
-        window.statusBarColor = palette.surface
-        @Suppress("DEPRECATION")
-        window.navigationBarColor = palette.surface
-        lightBars(!palette.dark)
+        if (windowPalette == null) windowPalette = Palette.of(Theme.SYSTEM, systemDark())
+        if (palette != windowPalette) {
+            windowPalette = palette
+            window.setBackgroundDrawable(ColorDrawable(palette.canvas))
+            @Suppress("DEPRECATION")
+            window.statusBarColor = palette.surface
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = palette.surface
+            lightBars(!palette.dark)
+        }
         header.invalidate()
         for (index in 0 until list.childCount) list.getChildAt(index).invalidate()
         settingsSheet?.let { colourSheet(it) }
