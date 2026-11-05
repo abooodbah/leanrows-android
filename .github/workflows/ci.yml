@@ -66,10 +66,13 @@ jobs:
 
       - name: What is in the APK
         run: |
+          set -o pipefail
           {
             echo "### Release APK contents"
             echo
-            python3 scripts/apk-contents.py app/build/outputs/apk/release/app-release.apk
+            # Kotlin metadata is read only by kotlin-reflect, and DebugProbesKt.bin
+            # only by coroutine debugging; the app uses neither.
+            python3 scripts/apk-contents.py app/build/outputs/apk/release/app-release.apk --forbid kotlin/ DebugProbesKt.bin
           } | tee contents.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Size on an arm64 phone
