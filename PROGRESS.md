@@ -66,11 +66,11 @@ code with only the new log lines.
 
 | Place | What it costs | Measured (main) | Proposed fix |
 | --- | --- | --- | --- |
-| Find previous (`Finder.last`) | Steps back one checkpoint section (about 32 rows) at a time, reads a whole 64 KiB chunk and allocates 576 KiB for each, and when it wraps it searches the whole file again | 2,654 ms with no match in large-multiline.csv, against 364 ms for Find next; on the JVM it read 408 MB of the 9.6 MB file | Step back at least 1 MiB at a time, reuse the buffers, search only the rest of the file when wrapping |
+| Find previous (`Finder.last`) | Steps back one checkpoint section (about 32 rows) at a time, reads a whole 64 KiB chunk and allocates 576 KiB for each, and when it wraps it searches the whole file again | 2,654 and 3,036 ms with no match in large-multiline.csv, against 364 and 399 ms for Find next; on the JVM it read 408 MB of the 9.6 MB file | Step back at least 1 MiB at a time, reuse the buffers, search only the rest of the file when wrapping. Fixed in the Find previous pull request |
 | System light or dark switch (manifest `configChanges` lacks `uiMode`) | The activity is recreated: the file is opened and indexed again and the list goes back to row 1 (an .xlsx sheet is written out again) | 424 ms until the rows are drawn again, and the place in the file is lost | Handle `uiMode` and recolour in place; done with the five themes |
-| APK: Kotlin metadata (`kotlin/*.kotlin_builtins`) and `DebugProbesKt.bin` | Files only kotlin-reflect and coroutine debugging read; the app uses neither | about 12,400 of 217,221 bytes (the largest of them, from the CI size report) | Exclude them when packaging |
-| APK: `resources.arsc` | androidx.core brings strings in about 80 languages; the app is in English | 28,420 bytes | Keep English resources only (`localeFilters`) |
-| Scrolling | A content description string per bound row and one ellipsized string per cell | 4,490 to 4,600 objects allocated over 10 swipes through 100,001 rows | None: small, and needed for TalkBack |
+| APK: Kotlin metadata (`kotlin/*.kotlin_builtins`) and `DebugProbesKt.bin` | Files only kotlin-reflect and coroutine debugging read; the app uses neither | 9 entries, 12,835 bytes stored | Fixed in #15: excluded when packaging. APK 217,221 to 203,088 bytes (run 41986249081) |
+| APK: `resources.arsc` | androidx.core brings strings in many languages; the app is in English | 28,420 bytes | Fixed in #16: English resources only. APK 217,221 to 200,241 bytes (run 41984977500) |
+| Scrolling | A content description string per bound row and one ellipsized string per cell | 4,490 to 4,600 objects allocated over 10 swipes through 100,001 rows in one run, 5 in another, so the count is not reliable yet | None: small, and needed for TalkBack |
 | Rotation | No recreate (`configChanges` covers it); one layout pass | 3 frames; PSS 26.7 MB after, 25.2 MB before | None |
 | Open | Cold start to first frame and to rows | first frame 51 ms over the empty app, rows drawn 354 to 378 ms over it | None: under the 1 s budget |
 | Indexing (`Table.scan`) | Reads 64 KiB at a time | 178 to 201 ms for 100,001 rows | None now; a larger chunk is a small gain, left for the maintainer |
@@ -81,6 +81,13 @@ code with only the new log lines.
 Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## Done
+
+- 0.2.0 work so far: the budgets job also measures Find, a system theme
+  switch, rotation and allocations (#14); Kotlin metadata left out of the
+  APK (#15); English resources only (#16); the sort engine (#17), with the
+  desktop's order and test cases, one read of the file and a multi-way
+  merge: 10,000,000 rows in 9.7 s (text) and 12.5 s (numbers) on the JVM
+  with a 40 MiB heap.
 
 - Gradle project: Kotlin, classic Views. One library: androidx.recyclerview
   1.4.0 for the table (it brings androidx.core and androidx.collection; the
@@ -111,8 +118,8 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## In progress
 
-- Efficiency review: measuring (PR "Measure find, theme switch, rotation
-  and allocations").
+- Find previous reads the file about once (this pull request).
+- Sorting on the screen (#18), then the themes and the settings sheet.
 
 ## Remaining
 

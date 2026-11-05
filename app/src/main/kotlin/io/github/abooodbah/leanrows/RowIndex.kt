@@ -51,6 +51,19 @@ class RowIndex(private val capacity: Int = 4096, initialStride: Long = 16) {
         count++
     }
 
+    /** The last checkpoint that starts at or before byte [offset]: its row and offset. */
+    @Synchronized
+    fun nearestOffset(offset: Long): Pair<Long, Long> {
+        if (count == 0 || offsets[0] > offset) return 0L to 0L
+        var low = 0
+        var high = count - 1
+        while (low < high) {
+            val middle = (low + high + 1) ushr 1
+            if (offsets[middle] <= offset) low = middle else high = middle - 1
+        }
+        return rows[low] to offsets[low]
+    }
+
     /** The last checkpoint at or before [row]: its row and byte offset. */
     @Synchronized
     fun nearest(row: Long): Pair<Long, Long> {

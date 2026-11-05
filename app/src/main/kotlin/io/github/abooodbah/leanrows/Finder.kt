@@ -30,8 +30,7 @@ class Finder(private val table: Table) {
         lastSearchCompleted = true
         last(needle, matchCase, before, cancelled)?.let { return Hit(it, wrapped = false) }
         if (cancelled()) return cancelledResult()
-        return last(needle, matchCase, Long.MAX_VALUE, cancelled)
-            ?.takeIf { it >= before }
+        return last(needle, matchCase, Long.MAX_VALUE, cancelled, floor = before)
             ?.let { Hit(it, wrapped = true) }
             ?: if (cancelled()) cancelledResult() else null
     }
@@ -49,18 +48,31 @@ class Finder(private val table: Table) {
         return if (matchCase) bytes else ByteArray(bytes.size) { fold(bytes[it]) }
     }
 
-    /** The last matching row before [before], searching back one checkpoint section at a time. */
-    private fun last(needle: ByteArray, matchCase: Boolean, before: Long, cancelled: () -> Boolean): Long? {
+    /**
+     * The last matching row in [floor, before), searching back a section of
+     * at least [SECTION_BYTES] at a time, from checkpoint to checkpoint. A
+     * section is read once from its start, so the file is read about once.
+     */
+    private fun last(
+        needle: ByteArray,
+        matchCase: Boolean,
+        before: Long,
+        cancelled: () -> Boolean,
+        floor: Long = 0,
+    ): Long? {
+        val buffers = Buffers()
         var end = before
-        while (end > 0) {
-            val (start, _) = table.index.nearest(end - 1)
+        while (end > floor) {
+            val (endRow, endOffset) = table.index.nearest(end - 1)
+            // Never past the checkpoint before end, so every step moves back.
+            val start = minOf(table.index.nearestOffset(endOffset - SECTION_BYTES).first, endRow)
             var found: Long? = null
-            walk(needle, matchCase, start, end, cancelled) { row ->
+            walk(needle, matchCase, maxOf(start, floor), end, cancelled, buffers) { row ->
                 found = row
                 true
             }
             if (found != null || cancelled()) return found
-            if (start == 0L) return null
+            if (start <= floor) return null
             end = start
         }
         return null
@@ -68,11 +80,22 @@ class Finder(private val table: Table) {
 
     private fun first(needle: ByteArray, matchCase: Boolean, from: Long, until: Long, cancelled: () -> Boolean): Long? {
         var found: Long? = null
-        walk(needle, matchCase, from, until, cancelled) { row ->
+        walk(needle, matchCase, from, until, cancelled, Buffers()) { row ->
             found = row
             false
         }
         return found
+    }
+
+    /** Read buffers for one search, reused from section to section. */
+    private class Buffers {
+        val chunk = ByteArray(Table.CHUNK)
+        val ends = LongArray(Table.CHUNK + 1)
+        var endCount = 0
+        val collect: (Long, Long) -> Boolean = { _, end ->
+            ends[endCount++] = end
+            true
+        }
     }
 
     /**
@@ -85,12 +108,14 @@ class Finder(private val table: Table) {
         from: Long,
         until: Long,
         cancelled: () -> Boolean,
+        buffers: Buffers,
         onMatch: (Long) -> Boolean,
     ) {
         val (checkpointRow, checkpointOffset) = table.index.nearest(from)
         val scanner = RecordScanner(table.format, checkpointOffset)
-        val buffer = ByteArray(Table.CHUNK)
-        val ends = LongArray(Table.CHUNK + 1)
+        val buffer = buffers.chunk
+        val ends = buffers.ends
+        val collect = buffers.collect
         val failure = failureTable(needle)
         var matched = 0
         var position = checkpointOffset
@@ -99,16 +124,13 @@ class Finder(private val table: Table) {
         while (true) {
             if (cancelled()) return
             val read = table.source.read(position, buffer, 0, buffer.size)
-            var endCount = 0
-            val collect: (Long, Long) -> Boolean = { _, end ->
-                ends[endCount++] = end
-                true
-            }
+            buffers.endCount = 0
             if (read <= 0) {
                 scanner.finish(collect)
                 return
             }
             scanner.feed(buffer, 0, read, collect)
+            val endCount = buffers.endCount
             var endIndex = 0
             for (i in 0 until read) {
                 val byte = if (matchCase) buffer[i] else fold(buffer[i])
@@ -147,6 +169,8 @@ class Finder(private val table: Table) {
         if (byte in UPPER_A..UPPER_Z) (byte + CASE_OFFSET).toByte() else byte
 
     private companion object {
+        /** Find previous steps back at least this much of the file at a time. */
+        const val SECTION_BYTES = 1024L * 1024
         const val UPPER_A = 'A'.code.toByte()
         const val UPPER_Z = 'Z'.code.toByte()
         const val CASE_OFFSET = 'a'.code - 'A'.code
