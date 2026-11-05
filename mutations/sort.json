@@ -1,0 +1,149 @@
+[
+  {
+    "name": "Descending order also reverses numbers, text and empty",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "if (groupA != groupB) return groupA.compareTo(groupB)",
+    "new": "if (groupA != groupB) return directed(groupA.compareTo(groupB))"
+  },
+  {
+    "name": "Equal values are not ordered by row",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "        return Entry.row(a, at).compareTo(Entry.row(b, bt))\n    }",
+    "new": "        return 0\n    }"
+  },
+  {
+    "name": "Descending order reverses ties too",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "        return Entry.row(a, at).compareTo(Entry.row(b, bt))\n    }",
+    "new": "        return directed(Entry.row(a, at).compareTo(Entry.row(b, bt)))\n    }"
+  },
+  {
+    "name": "Text compares signed bytes",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "            val x = a[keyA + index].toInt() and 0xFF\n            val y = b[keyB + index].toInt() and 0xFF",
+    "new": "            val x = a[keyA + index].toInt()\n            val y = b[keyB + index].toInt()"
+  },
+  {
+    "name": "A doubled quote is dropped",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "                        Format.QUOTE -> {\n                            state = State.QUOTED\n                            key(byte)\n                        }",
+    "new": "                        Format.QUOTE -> {\n                            state = State.QUOTED\n                        }"
+  },
+  {
+    "name": "Long number keys that tie are not read again",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "longA && longB -> fromFile(a, at, b, bt, digits = true)",
+    "new": "longA && longB -> 0"
+  },
+  {
+    "name": "Long text keys that tie are not read again",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "if (longA && longB) return fromFile(a, at, b, bt, digits = false)",
+    "new": "if (longA && longB) return 0"
+  },
+  {
+    "name": "Leading zeros count as digits",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "if (!significant && b == '0'.code) {",
+    "new": "if (false) {"
+  },
+  {
+    "name": "Zeros past the kept digits make a number long",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "        if (b != '0'.code) {\n            if (index < Sorter.KEY_BYTES)",
+    "new": "        if (true) {\n            if (index < Sorter.KEY_BYTES)"
+  },
+  {
+    "name": "Leading zeros do not lower the magnitude",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "Math.addExact(beforeDot - leading,",
+    "new": "Math.addExact(beforeDot,"
+  },
+  {
+    "name": "Negative exponents count as positive",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "if (expNegative) -exp else exp",
+    "new": "exp"
+  },
+  {
+    "name": "Whitespace after an exponent mark is allowed",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "if (state == 1 || state == 4 || state == 5) invalid = true",
+    "new": "if (state == 1) invalid = true"
+  },
+  {
+    "name": "A huge exponent is sorted anyway",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "        if (expOverflow) throw SortException(NUMERIC_RANGE)\n",
+    "new": ""
+  },
+  {
+    "name": "The merge always takes the left child",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "val smaller = if (right < size && less(cursors[right], cursors[left])) right else left",
+    "new": "val smaller = left"
+  },
+  {
+    "name": "The reverse map is left empty",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "ranks[(row - low).toInt()] = rank.toInt()",
+    "new": "ranks[(row - low).toInt()] = 0"
+  },
+  {
+    "name": "Temporary files are kept on disk",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "            file.delete()\n        }\n        return Scratch",
+    "new": "        }\n        return Scratch"
+  },
+  {
+    "name": "A lone CR does not end a record",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "if (state != State.QUOTED && byte == CR) {",
+    "new": "if (false) {"
+  },
+  {
+    "name": "A later field starts at its delimiter",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "if (column == target) fieldStart = offset + 1",
+    "new": "if (column == target) fieldStart = offset"
+  },
+  {
+    "name": "The space check allows exactly the free space minus one",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "if (wanted > free) {",
+    "new": "if (wanted >= free + 2) {"
+  },
+  {
+    "name": "No disk limit",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "if (diskUsed > limits.diskBytes) {",
+    "new": "if (false) {"
+  },
+  {
+    "name": "Cancelling is ignored while reading",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Sort.kt",
+    "old": "            if (cancelled()) throw SortCancelled()\n            val read = source.read(position, chunk, 0, chunk.size)",
+    "new": "            val read = source.read(position, chunk, 0, chunk.size)"
+  }
+]

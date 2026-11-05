@@ -28,8 +28,6 @@ class DescriptorSource(private val descriptor: ParcelFileDescriptor, override va
 
 class OpenedFile(val source: DescriptorSource, val name: String, val copied: Boolean)
 
-class NotEnoughSpace : IOException("not enough free space for a copy")
-
 /**
  * Opens a content URI for random access. Most providers hand over a real
  * file. Some only give a pipe (mail apps, archives, cloud apps), which cannot
