@@ -54,9 +54,15 @@ log() { echo "[measure] $*" >&2; }
 # AOSP emulator image allows it; elsewhere allocations are reported as NA.
 ROOT=no
 if adb root >/dev/null 2>&1; then
-  adb wait-for-device
-  if [ "$(adb shell id -u | tr -d '\r')" = 0 ]; then ROOT=yes; fi
+  # adbd restarts as root; the device is offline for a moment.
+  sleep 3
+  for _ in $(seq 1 60); do
+    if adb shell true >/dev/null 2>&1; then break; fi
+    sleep 1
+  done
+  if [ "$(adb shell id -u 2>/dev/null | tr -d '\r' || true)" = 0 ]; then ROOT=yes; fi
 fi
+log "adb root: $ROOT"
 
 install() {
   adb install -r -d "${APKS[$1]}" >/dev/null
