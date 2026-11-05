@@ -25,6 +25,9 @@ class ByteArraySource(private val bytes: ByteArray) : ByteSource {
     }
 }
 
+/** The device is about to run out of space for a copy or a sort. */
+class NotEnoughSpace : IOException("not enough free space for a copy")
+
 /** One row as shown: its number (from 1) and its cells. */
 class Row(val number: Long, val cells: List<String>)
 
