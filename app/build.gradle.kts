@@ -54,6 +54,12 @@ android {
         }
     }
 
+    // The app is in English; libraries' strings in other languages would
+    // only make resources.arsc larger. CI checks this.
+    androidResources {
+        localeFilters += listOf("en")
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
