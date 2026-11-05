@@ -150,8 +150,17 @@ centre_of() {
 }
 
 # The number of the first row on screen, from the row views' descriptions.
+# The dump waits for the screen to be idle, so it is tried a few times.
 first_row() {
-  grep -o 'content-desc="Row [0-9]*' <<<"$(ui_dump)" | head -n 1 | sed 's/.*Row //' || true
+  local number
+  for _ in 1 2 3; do
+    number=$(grep -o 'content-desc="Row [0-9]*' <<<"$(ui_dump)" | head -n 1 | sed 's/.*Row //' || true)
+    if [ -n "$number" ]; then
+      echo "$number"
+      return
+    fi
+    sleep 2
+  done
 }
 
 # Objects allocated by the app since it started, from ART's SIGQUIT dump.
@@ -363,7 +372,8 @@ for label in "${LABELS[@]}"; do
   # The system switches to dark: from the switch until the rows are drawn again.
   open_large
   for _ in 1 2 3; do adb shell input swipe 540 1800 540 600 250; sleep 0.5; done
-  sleep 1
+  # The fast scroller fades out first; until then the screen is not idle.
+  sleep 3
   before=$(first_row)
   mark
   adb shell cmd uimode night yes >/dev/null
@@ -378,7 +388,8 @@ for label in "${LABELS[@]}"; do
   # Rotation to landscape: frames drawn, where the list is, and memory.
   open_large
   for _ in 1 2 3; do adb shell input swipe 540 1800 540 600 250; sleep 0.5; done
-  sleep 1
+  # The fast scroller fades out first; until then the screen is not idle.
+  sleep 3
   before=$(first_row)
   adb shell dumpsys gfxinfo "$PKG" reset >/dev/null
   adb shell settings put system user_rotation 1

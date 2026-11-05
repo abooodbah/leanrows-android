@@ -58,6 +58,28 @@ apps list already switches between files), keyboard shortcuts (no
 keyboard on most phones), the installer and Explorer registration
 (Android uses the open-with filters in the manifest).
 
+## Efficiency review
+
+Measured on release builds by the budgets job (API 34 emulator, no GPU),
+CI run 41982387830 (PR #14) unless a row says otherwise; "main" is the 0.1.2
+code with only the new log lines.
+
+| Place | What it costs | Measured (main) | Proposed fix |
+| --- | --- | --- | --- |
+| Find previous (`Finder.last`) | Steps back one checkpoint section (about 32 rows) at a time, reads a whole 64 KiB chunk and allocates 576 KiB for each, and when it wraps it searches the whole file again | 2,654 ms with no match in large-multiline.csv, against 364 ms for Find next; on the JVM it read 408 MB of the 9.6 MB file | Step back at least 1 MiB at a time, reuse the buffers, search only the rest of the file when wrapping |
+| System light or dark switch (manifest `configChanges` lacks `uiMode`) | The activity is recreated: the file is opened and indexed again and the list goes back to row 1 (an .xlsx sheet is written out again) | 424 ms until the rows are drawn again, and the place in the file is lost | Handle `uiMode` and recolour in place; done with the five themes |
+| APK: Kotlin metadata (`kotlin/*.kotlin_builtins`) and `DebugProbesKt.bin` | Files only kotlin-reflect and coroutine debugging read; the app uses neither | about 12,400 of 217,221 bytes (the largest of them, from the CI size report) | Exclude them when packaging |
+| APK: `resources.arsc` | androidx.core brings strings in about 80 languages; the app is in English | 28,420 bytes | Keep English resources only (`localeFilters`) |
+| Scrolling | A content description string per bound row and one ellipsized string per cell | 4,490 to 4,600 objects allocated over 10 swipes through 100,001 rows | None: small, and needed for TalkBack |
+| Rotation | No recreate (`configChanges` covers it); one layout pass | 3 frames; PSS 26.7 MB after, 25.2 MB before | None |
+| Open | Cold start to first frame and to rows | first frame 51 ms over the empty app, rows drawn 354 to 378 ms over it | None: under the 1 s budget |
+| Indexing (`Table.scan`) | Reads 64 KiB at a time | 178 to 201 ms for 100,001 rows | None now; a larger chunk is a small gain, left for the maintainer |
+| Row reads (`Table.rows`) | Allocates a 64 KiB and a 4 KiB buffer per 128-row window | part of the 4,600 objects above | None: small |
+| Dead code | `Format.label` and `Format.delimited` are unused | R8 removes them from the APK | Left as is; no size cost |
+| Dependencies | Only androidx.recyclerview, which brings androidx.core, collection and customview; R8 keeps only what is used | classes.dex 159,879 bytes stored | None |
+
+Zoom did not exist before 0.2.0; it is measured with the settings sheet.
+
 ## Done
 
 - Gradle project: Kotlin, classic Views. One library: androidx.recyclerview
