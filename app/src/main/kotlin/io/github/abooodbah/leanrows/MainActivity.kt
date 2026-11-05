@@ -23,6 +23,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -35,6 +36,7 @@ import java.io.IOException
 import java.text.NumberFormat
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicInteger
 
 class MainActivity : Activity() {
@@ -52,6 +54,7 @@ class MainActivity : Activity() {
     private lateinit var findBar: View
     private lateinit var findText: EditText
     private lateinit var matchCase: CheckBox
+    private lateinit var sortCancel: Button
     private lateinit var layout: LinearLayoutManager
     private lateinit var style: TableStyle
     private lateinit var pan: HorizontalPan
@@ -85,35 +88,55 @@ class MainActivity : Activity() {
         val scanThread: ExecutorService = Executors.newSingleThreadExecutor()
         val readThread: ExecutorService = Executors.newSingleThreadExecutor()
         val findThread: ExecutorService = Executors.newSingleThreadExecutor()
+        val sortThread: ExecutorService = Executors.newSingleThreadExecutor()
         val finder = Finder(table)
         val findGeneration = AtomicInteger()
         var shownRows = 0L
         var scanError: IOException? = null
         var lastProgress = 0L
 
-        val windows = RowWindows(
-            table,
+        /** The finished sort the rows are shown in, or null for the file's order. */
+        var order: SortedOrder? = null
+
+        /** The sort that is running, if any; [sortGeneration] cancels it. */
+        var sorting: SortRequest? = null
+        val sortGeneration = AtomicInteger()
+        var sortProgress = ""
+        var sortNote: String? = null
+
+        /** The row (in the file, from 0) of the last Find match. */
+        var lastHitRow = -1L
+
+        var windows = rowWindows { first, count -> table.rows(first, count) }
+        val adapter = RowsAdapter(this)
+
+        val current: Boolean get() = this@MainActivity.generation.get() == generation && !isDestroyed
+
+        fun rowWindows(read: (Long, Int) -> List<Row>) = RowWindows(
+            read,
             readThread,
             post = { main.post(it) },
             loaded = { first, rows -> rowsLoaded(this, first, rows) },
             failed = { error -> readFailed(this, error) },
         )
-        val adapter = RowsAdapter(this)
-
-        val current: Boolean get() = this@MainActivity.generation.get() == generation && !isDestroyed
 
         fun close() {
             windows.close()
+            sortGeneration.incrementAndGet()
             scanThread.shutdownNow()
             readThread.shutdownNow()
             findThread.shutdownNow()
+            sortThread.shutdownNow()
             // Close the file after the threads are done with it.
             val workbook = if (keepWorkbook) null else workbook
+            val order = order
             Thread {
                 scanThread.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)
                 readThread.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)
                 findThread.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)
+                sortThread.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)
                 try {
+                    order?.close()
                     closeable?.close()
                 } catch (ignored: Exception) {
                 }
@@ -157,6 +180,7 @@ class MainActivity : Activity() {
         findBar = findViewById(R.id.find_bar)
         findText = findViewById(R.id.find_text)
         matchCase = findViewById(R.id.match_case)
+        sortCancel = findViewById(R.id.sort_cancel)
         style = TableStyle(this)
         layOutEdgeToEdge()
 
@@ -178,6 +202,12 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.go_to).setOnClickListener { askForRow() }
         findViewById<Button>(R.id.sheet).setOnClickListener { askForSheet() }
         findViewById<Button>(R.id.find).setOnClickListener { showFindBar() }
+        findViewById<Button>(R.id.more).setOnClickListener { showMore(it) }
+        sortCancel.setOnClickListener { document?.let { cancelSort(it) } }
+        header.listener = object : HeaderView.Listener {
+            override fun tapped(column: Int) = headerTapped(column)
+            override fun longPressed(column: Int) = showColumnMenu(column)
+        }
         findViewById<Button>(R.id.find_close).setOnClickListener { hideFindBar() }
         findViewById<Button>(R.id.find_next).setOnClickListener { find(forward = true) }
         findViewById<Button>(R.id.find_previous).setOnClickListener { find(forward = false) }
@@ -400,6 +430,7 @@ class MainActivity : Activity() {
         // The start screen's text is not the answer for this file.
         message.visibility = View.GONE
         findViewById<View>(R.id.sheet).visibility = View.GONE
+        sortCancel.visibility = View.GONE
         hideFindBar()
         return opening
     }
@@ -451,7 +482,7 @@ class MainActivity : Activity() {
             if (!document.current) return@post
             val before = document.shownRows
             val after = maxOf(rows, before)
-            if (after > before) {
+            if (after > before && document.order == null) {
                 document.shownRows = after
                 document.adapter.notifyItemRangeInserted(before.toInt(), (after - before).toInt())
             }
@@ -528,7 +559,7 @@ class MainActivity : Activity() {
     private fun updateStatus(document: Document) {
         val table = document.table
         val parts = mutableListOf<String>()
-        val rows = maxOf(table.rowCount, document.shownRows)
+        val rows = if (document.order != null) table.rowCount else maxOf(table.rowCount, document.shownRows)
         parts += when {
             table.scanned -> if (rows == 1L) "1 row" else "${numbers.format(rows)} rows"
             else -> "Indexing: ${numbers.format(rows)} rows so far"
@@ -540,8 +571,11 @@ class MainActivity : Activity() {
             Format.JSONL -> "JSON Lines"
             Format.LOG -> "text lines"
         }
+        document.order?.let { parts += "sorted by " + describe(document, it.request) }
         var text = parts.joinToString(" · ")
         if (table.scanned && rows == 0L) text = "The file is empty · " + parts.last()
+        if (document.sorting != null) text = document.sortProgress
+        document.sortNote?.let { text += "\n" + it }
         if (table.unterminatedQuote) text += "\nThe file ends inside a quoted field, so the last row runs to the end of the file."
         document.scanError?.let { text += "\nReading stopped early: ${it.message}" }
         status.text = text
@@ -601,13 +635,25 @@ class MainActivity : Activity() {
                     }
                 } else {
                     dialog.dismiss()
-                    scrollTo(number - 1)
+                    goTo(number - 1)
                 }
             }
         }
         dialog.show()
         dialogForTest = dialog
         field.requestFocus()
+    }
+
+    /** Shows row [row] (from 0) of the file, wherever the sort has put it. */
+    private fun goTo(row: Long) {
+        val document = document ?: return
+        val position = try {
+            document.order?.rankOf(row) ?: row
+        } catch (error: IOException) {
+            status.text = "LeanRows could not read the sorted order: ${error.message}"
+            return
+        }
+        scrollTo(position)
     }
 
     private fun showCell(row: RowView) {
@@ -623,11 +669,11 @@ class MainActivity : Activity() {
             setPadding(padding, padding / 2, padding, 0)
         }
         dialogForTest = AlertDialog.Builder(this)
-            .setTitle("Row ${numbers.format(row.index + 1)}, $name")
+            .setTitle("Row ${row.number.toLongOrNull()?.let { numbers.format(it) } ?: row.number}, $name")
             .setView(body)
             .setPositiveButton(R.string.copy) { _, _ ->
                 getSystemService(ClipboardManager::class.java)
-                    .setPrimaryClip(ClipData.newPlainText("$name, row ${row.index + 1}", text))
+                    .setPrimaryClip(ClipData.newPlainText("$name, row ${row.number}", text))
             }
             .setNegativeButton(R.string.close, null)
             .show()
@@ -648,6 +694,7 @@ class MainActivity : Activity() {
         getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(findText.windowToken, 0)
         document?.let {
             it.findGeneration.incrementAndGet()
+            it.lastHitRow = -1
             if (it.state.highlightedRow >= 0) {
                 it.state.highlightedRow = -1
                 it.adapter.notifyItemRangeChanged(0, it.adapter.itemCount)
@@ -663,7 +710,11 @@ class MainActivity : Activity() {
             return
         }
         val exact = matchCase.isChecked
-        val from = if (document.state.highlightedRow >= 0) {
+        val order = document.order
+        // In a sorted view Find still moves through the file's own order.
+        val from = if (order != null) {
+            if (document.lastHitRow >= 0) document.lastHitRow else if (forward) -1 else Long.MAX_VALUE
+        } else if (document.state.highlightedRow >= 0) {
             document.state.highlightedRow
         } else if (forward) {
             layout.findFirstVisibleItemPosition().toLong() - 1
@@ -674,13 +725,14 @@ class MainActivity : Activity() {
         status.text = "Finding “$text”…"
         val started = SystemClock.uptimeMillis()
         document.findThread.execute {
-            val stale = { !document.current || document.findGeneration.get() != search }
+            val stale = { !document.current || document.findGeneration.get() != search || document.order !== order }
+            var position = -1L
             val hit = try {
                 if (forward) {
                     document.finder.next(text, exact, from, stale)
                 } else {
                     document.finder.previous(text, exact, from, stale)
-                }
+                }.also { hit -> if (hit != null) position = order?.rankOf(hit.row) ?: hit.row }
             } catch (error: IOException) {
                 main.post { if (!stale()) status.text = "Find stopped: ${error.message}" }
                 return@execute
@@ -693,7 +745,8 @@ class MainActivity : Activity() {
                     updateStatus(document)
                     status.text = "No row contains “$text”." + if (exact) " Case must match." else ""
                 } else {
-                    scrollTo(hit.row)
+                    document.lastHitRow = hit.row
+                    scrollTo(position)
                     val wrapped = when {
                         !hit.wrapped -> ""
                         forward -> ", from the top"
@@ -701,6 +754,220 @@ class MainActivity : Activity() {
                     }
                     status.text = "“$text” in row ${numbers.format(hit.row + 1)}$wrapped"
                 }
+            }
+        }
+    }
+
+    // Sorting
+
+    private fun headerTapped(column: Int) {
+        val document = document ?: return
+        if (column == HeaderView.ROW) {
+            restoreOrder(document)
+            return
+        }
+        val current = document.sorting ?: document.order?.request
+        val next = if (current != null && current.column == column) {
+            current.copy(descending = !current.descending)
+        } else {
+            SortRequest(column, SortMode.TEXT, descending = false)
+        }
+        sort(document, next)
+    }
+
+    private fun showColumnMenu(column: Int) {
+        val document = document ?: return
+        val popup = PopupMenu(this, header)
+        if (column >= 0) addSortItems(popup)
+        popup.menu.add(0, R.id.restore_order, 0, R.string.restore_order).isEnabled = document.order != null
+        showPopup(popup, document, column)
+    }
+
+    private fun showMore(anchor: View) {
+        val document = document
+        val popup = PopupMenu(this, anchor)
+        if (document != null) {
+            popup.menu.add(0, R.id.sort_by, 0, R.string.sort_by)
+            val column = (document.sorting ?: document.order?.request)?.column
+            if (column != null) addSortItems(popup)
+            popup.menu.add(0, R.id.restore_order, 0, R.string.restore_order).isEnabled = document.order != null
+            popup.menu.add(0, R.id.cancel_sort, 0, R.string.cancel_sort).isEnabled = document.sorting != null
+        }
+        showPopup(popup, document, column = -1)
+    }
+
+    private fun addSortItems(popup: PopupMenu) {
+        for (id in listOf(R.id.sort_text_ascending, R.id.sort_text_descending, R.id.sort_numbers_ascending, R.id.sort_numbers_descending)) {
+            popup.menu.add(0, id, 0, sortItemTitle(id))
+        }
+    }
+
+    private fun sortItemTitle(id: Int) = getString(
+        when (id) {
+            R.id.sort_text_ascending -> R.string.sort_text_ascending
+            R.id.sort_text_descending -> R.string.sort_text_descending
+            R.id.sort_numbers_ascending -> R.string.sort_numbers_ascending
+            else -> R.string.sort_numbers_descending
+        },
+    )
+
+    private fun showPopup(popup: PopupMenu, document: Document?, column: Int) {
+        popup.setOnMenuItemClickListener { item ->
+            val target = if (column >= 0) column else (document?.sorting ?: document?.order?.request)?.column ?: 0
+            if (document != null) {
+                when (item.itemId) {
+                    R.id.sort_by -> askForSortColumn(document)
+                    R.id.sort_text_ascending -> sort(document, SortRequest(target, SortMode.TEXT, false))
+                    R.id.sort_text_descending -> sort(document, SortRequest(target, SortMode.TEXT, true))
+                    R.id.sort_numbers_ascending -> sort(document, SortRequest(target, SortMode.NUMERIC, false))
+                    R.id.sort_numbers_descending -> sort(document, SortRequest(target, SortMode.NUMERIC, true))
+                    R.id.restore_order -> restoreOrder(document)
+                    R.id.cancel_sort -> cancelSort(document)
+                }
+            }
+            true
+        }
+        popup.setOnDismissListener { if (popupForTest === popup) popupForTest = null }
+        popup.show()
+        popupForTest = popup
+    }
+
+    private fun askForSortColumn(document: Document) {
+        val titles = document.state.columns.titles.toTypedArray()
+        dialogForTest = AlertDialog.Builder(this)
+            .setTitle(R.string.sort_by)
+            .setItems(titles) { _, which -> headerTapped(which) }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    /** "Column 3, text, ascending". */
+    private fun describe(document: Document, request: SortRequest): String {
+        val title = document.state.columns.titles.getOrElse(request.column) { "Column ${request.column + 1}" }
+        val mode = if (request.mode == SortMode.TEXT) "text" else "numbers"
+        return "$title, $mode, " + if (request.descending) "descending" else "ascending"
+    }
+
+    private fun sort(document: Document, request: SortRequest) {
+        if (this.document !== document) return
+        if (document.workbook != null) {
+            status.text = getString(R.string.no_sort_xlsx)
+            return
+        }
+        if (request.column >= document.state.columns.titles.size) return
+        val table = document.table
+        val folder = File(cacheDir, "sort").apply { mkdirs() }
+        val rows = Sorter.expectedRows(maxOf(table.rowCount, document.shownRows), table.scanned, table.scannedBytes, table.source.size)
+        Sorter.checkSpace(rows, table.source.size, freeSpaceForTest ?: folder.usableSpace)?.let {
+            document.sortNote = it
+            updateStatus(document)
+            return
+        }
+        val mine = document.sortGeneration.incrementAndGet()
+        document.sorting = request
+        document.sortNote = null
+        document.sortProgress = "Sorting by ${describe(document, request)}…"
+        sortCancel.visibility = View.VISIBLE
+        updateStatus(document)
+        val started = SystemClock.uptimeMillis()
+        document.sortThread.execute {
+            val cancelled = { !document.current || document.sortGeneration.get() != mine }
+            // scripts/measure.sh reads this line.
+            Log.i(TAG, "sort started")
+            var shown = 0L
+            val sorter = Sorter(table.source, table.format, request, folder)
+            val order = try {
+                sorter.run(cancelled) { phase, done, total ->
+                    val now = SystemClock.uptimeMillis()
+                    if (now - shown >= 100) {
+                        shown = now
+                        val percent = if (total > 0) done * 100 / total else 0
+                        val step = when (phase) {
+                            SortPhase.READING -> "$percent% read"
+                            SortPhase.MERGING -> "merging, $percent%"
+                            SortPhase.FINISHING -> "finishing, $percent%"
+                        }
+                        main.post {
+                            if (!cancelled()) {
+                                document.sortProgress = "Sorting by ${describe(document, request)}: $step"
+                                updateStatus(document)
+                            }
+                        }
+                    }
+                }
+            } catch (stopped: SortCancelled) {
+                return@execute
+            } catch (error: Exception) {
+                Log.w(TAG, "sort failed", error)
+                main.post { if (!cancelled()) sortEnded(document, null, "Sort failed: ${error.message}") }
+                return@execute
+            }
+            // scripts/measure.sh reads this line.
+            Log.i(TAG, "sorted ${order.count} rows by column ${request.column + 1} in ${SystemClock.uptimeMillis() - started} ms")
+            main.post {
+                if (cancelled()) order.close() else sortEnded(document, order, null)
+            }
+        }
+    }
+
+    /** A sort finished: show [order], or keep the view and say [note]. */
+    private fun sortEnded(document: Document, order: SortedOrder?, note: String?) {
+        document.sorting = null
+        document.sortNote = note
+        sortCancel.visibility = View.GONE
+        if (order != null) showOrder(document, order)
+        updateStatus(document)
+    }
+
+    private fun cancelSort(document: Document) {
+        if (document.sorting == null) return
+        document.sortGeneration.incrementAndGet()
+        sortEnded(document, null, "Sort cancelled. The order you had is kept.")
+    }
+
+    private fun restoreOrder(document: Document) {
+        if (document.sorting != null) {
+            document.sortGeneration.incrementAndGet()
+            document.sorting = null
+            sortCancel.visibility = View.GONE
+        }
+        document.sortNote = null
+        if (document.order != null) showOrder(document, null)
+        updateStatus(document)
+    }
+
+    /** Shows the rows in [order], or in the file's order when it is null, from the top. */
+    private fun showOrder(document: Document, order: SortedOrder?) {
+        val old = document.order
+        document.order = order
+        document.windows.close()
+        document.windows = if (order == null) {
+            document.rowWindows { first, count -> document.table.rows(first, count) }
+        } else {
+            document.rowWindows { first, count -> order.rows(first, count) }
+        }
+        document.shownRows = order?.count ?: document.table.rowCount
+        document.state.sortColumn = order?.request?.column ?: -1
+        document.state.sortDescending = order?.request?.descending ?: false
+        document.state.highlightedRow = -1
+        document.lastHitRow = -1
+        document.findGeneration.incrementAndGet()
+        @Suppress("NotifyDataSetChanged") // Every row changes place.
+        document.adapter.notifyDataSetChanged()
+        layout.scrollToPositionWithOffset(0, 0)
+        header.invalidate()
+        // Closed after the reads and searches already queued for it.
+        if (old != null) {
+            try {
+                document.readThread.execute {
+                    try {
+                        document.findThread.execute { old.close() }
+                    } catch (stopped: RejectedExecutionException) {
+                        old.close()
+                    }
+                }
+            } catch (stopped: RejectedExecutionException) {
+                old.close()
             }
         }
     }
@@ -741,6 +1008,14 @@ class MainActivity : Activity() {
     internal val stateForTest: TableState? get() = document?.state
     internal var dialogForTest: AlertDialog? = null
         private set
+    internal var popupForTest: PopupMenu? = null
+        private set
+    internal val sortedForTest: SortedOrder? get() = document?.order
+    internal val sortingForTest: Boolean get() = document?.sorting != null
+    internal fun goToRowForTest(number: Long) = goTo(number - 1)
+
+    /** Stands in for the cache's free space in tests. */
+    internal var freeSpaceForTest: Long? = null
 
     companion object {
         private const val TAG = "LeanRows"

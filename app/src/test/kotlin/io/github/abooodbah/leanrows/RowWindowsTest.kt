@@ -19,7 +19,7 @@ class RowWindowsTest {
 
     /** Runs background work only when [drain] is called, like a busy worker thread. */
     private fun windows(table: Table = weather, failed: (IOException) -> Unit = { throw it }) =
-        RowWindows(table, { queue.addLast(it) }, { it.run() }, { first, rows -> loads += first to rows.size }, failed)
+        RowWindows(table::rows, { queue.addLast(it) }, { it.run() }, { first, rows -> loads += first to rows.size }, failed)
 
     private fun drain() {
         while (queue.isNotEmpty()) queue.removeFirst().run()

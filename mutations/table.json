@@ -117,5 +117,61 @@
     "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
     "old": "if (table.unterminatedQuote) text +=",
     "new": "if (false) text +="
+  },
+  {
+    "name": "A second tap does not reverse the sort",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "current.copy(descending = !current.descending)",
+    "new": "current.copy(descending = current.descending)"
+  },
+  {
+    "name": "Tapping Row does not restore the file's order",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "        if (column == HeaderView.ROW) {\n            restoreOrder(document)\n            return\n        }",
+    "new": "        if (column == HeaderView.ROW) {\n            return\n        }"
+  },
+  {
+    "name": "Workbooks are sorted",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "        if (document.workbook != null) {\n            status.text = getString(R.string.no_sort_xlsx)",
+    "new": "        if (false) {\n            status.text = getString(R.string.no_sort_xlsx)"
+  },
+  {
+    "name": "Sorted rows show their place, not their number",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/TableViews.kt",
+    "old": "number = row?.number?.toString() ?: if (state.sortColumn >= 0) \"\" else (index + 1).toString()",
+    "new": "number = (index + 1).toString()"
+  },
+  {
+    "name": "Find shows the file row's place, not the sorted one",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "position = order?.rankOf(hit.row) ?: hit.row",
+    "new": "position = hit.row"
+  },
+  {
+    "name": "Go to row ignores the sort",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "document.order?.rankOf(row) ?: row",
+    "new": "row"
+  },
+  {
+    "name": "No space check before a sort",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "Sorter.checkSpace(rows, table.source.size, freeSpaceForTest ?: folder.usableSpace)?.let {",
+    "new": "null?.let {"
+  },
+  {
+    "name": "The long-press menu sorts as text",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "R.id.sort_numbers_ascending -> sort(document, SortRequest(target, SortMode.NUMERIC, false))",
+    "new": "R.id.sort_numbers_ascending -> sort(document, SortRequest(target, SortMode.TEXT, false))"
   }
 ]

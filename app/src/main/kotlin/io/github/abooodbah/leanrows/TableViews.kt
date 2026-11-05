@@ -8,6 +8,7 @@ import android.text.TextPaint
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.TypedValue
+import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
@@ -72,6 +73,10 @@ class TableState(val style: TableStyle, val columns: Columns) {
     var viewportWidth = 0
     var highlightedRow = -1L
 
+    /** The column the rows are sorted by, or -1 for the file's own order. */
+    var sortColumn = -1
+    var sortDescending = false
+
     val maxOffset: Float get() = maxOf(0f, columns.totalWidth - viewportWidth)
 
     fun clampOffset() {
@@ -87,7 +92,10 @@ class TableState(val style: TableStyle, val columns: Columns) {
 class RowView(context: Context, private val state: TableState) : View(context) {
     var index = -1L
         private set
-    private var number = ""
+
+    /** The row's own number in the file, as shown; empty until a sorted row is read. */
+    var number = ""
+        private set
     private var cells: Array<CharSequence> = emptyArray()
     private var raw: List<String> = emptyList()
     var lastTouchX = 0f
@@ -102,7 +110,7 @@ class RowView(context: Context, private val state: TableState) : View(context) {
         val style = state.style
         val widths = state.columns.widths
         this.index = index
-        number = (index + 1).toString()
+        number = row?.number?.toString() ?: if (state.sortColumn >= 0) "" else (index + 1).toString()
         raw = row?.cells.orEmpty()
         cells = Array(minOf(raw.size, widths.size)) { column ->
             TextUtils.ellipsize(raw[column], style.text, widths[column] - 2 * style.padding, TextUtils.TruncateAt.END)
@@ -162,14 +170,59 @@ class RowView(context: Context, private val state: TableState) : View(context) {
     }
 }
 
-/** The column titles, panned with the rows. */
+/**
+ * The column titles, panned with the rows. A tap on a title sorts by it, a
+ * long press offers the sort orders, and a tap on Row restores the file's
+ * order; [listener] gets the column, [ROW] for the Row title.
+ */
 class HeaderView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
+    interface Listener {
+        fun tapped(column: Int)
+        fun longPressed(column: Int)
+    }
+
     var state: TableState? = null
         set(value) {
             field = value
             requestLayout()
             invalidate()
         }
+
+    var listener: Listener? = null
+
+    private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+        override fun onDown(event: MotionEvent) = true
+
+        override fun onSingleTapUp(event: MotionEvent): Boolean {
+            val column = columnAt(event.x)
+            if (column != NONE) listener?.tapped(column)
+            return true
+        }
+
+        override fun onLongPress(event: MotionEvent) {
+            val column = columnAt(event.x)
+            if (column != NONE) listener?.longPressed(column)
+        }
+    })
+
+    init {
+        // Every tap counts: two quick taps reverse the order and back.
+        gestures.setOnDoubleTapListener(null)
+        isClickable = true
+        contentDescription = "Column titles. Tap a title to sort by it, tap it again to reverse, tap Row for the file's order."
+    }
+
+    /** The column under [x], [ROW] for the row numbers, or [NONE]. */
+    fun columnAt(x: Float): Int {
+        val state = state ?: return NONE
+        val left = state.columns.rowNumberWidth
+        if (x < left) return ROW
+        val column = state.columns.columnAt(x - left + state.offsetX)
+        return if (column < 0) NONE else column
+    }
+
+    @Suppress("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean = gestures.onTouchEvent(event) || super.onTouchEvent(event)
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val height = state?.style?.headerHeight ?: 0
@@ -192,6 +245,10 @@ class HeaderView @JvmOverloads constructor(context: Context, attrs: AttributeSet
             if (x >= width) break
             if (x + columnWidth > left) {
                 canvas.drawText(title, x + style.padding, baseline, style.title)
+                if (column == state.sortColumn) {
+                    val arrow = if (state.sortDescending) DOWN else UP
+                    canvas.drawText(arrow, x + columnWidth - style.padding - style.title.measureText(arrow), baseline, style.title)
+                }
                 canvas.drawLine(x + columnWidth, 0f, x + columnWidth, height, style.rule)
             }
             x += columnWidth
@@ -200,6 +257,13 @@ class HeaderView @JvmOverloads constructor(context: Context, attrs: AttributeSet
         canvas.drawText(Columns.ROW, style.padding, baseline, style.title)
         canvas.drawLine(left, 0f, left, height, style.rule)
         canvas.drawLine(0f, height - style.rule.strokeWidth / 2, width.toFloat(), height - style.rule.strokeWidth / 2, style.rule)
+    }
+
+    companion object {
+        const val ROW = -1
+        const val NONE = -2
+        private const val UP = "\u25B2"
+        private const val DOWN = "\u25BC"
     }
 }
 

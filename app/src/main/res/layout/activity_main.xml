@@ -48,6 +48,14 @@
             android:id="@+id/open"
             style="@style/ToolbarButton"
             android:text="@string/open" />
+
+        <Button
+            android:id="@+id/more"
+            style="@style/ToolbarButton"
+            android:contentDescription="@string/more"
+            android:minWidth="48dp"
+            android:text="@string/more_symbol"
+            android:textSize="20sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -103,17 +111,32 @@
             android:text="@string/close" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/status"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/surface"
-        android:paddingStart="16dp"
-        android:paddingTop="2dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="8dp"
-        android:textColor="@color/muted"
-        android:textSize="13sp" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingEnd="4dp">
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:paddingStart="16dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/muted"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/sort_cancel"
+            style="@style/ToolbarButton"
+            android:text="@string/cancel"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"

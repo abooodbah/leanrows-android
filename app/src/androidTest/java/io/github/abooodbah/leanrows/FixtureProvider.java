@@ -126,6 +126,25 @@ public final class FixtureProvider extends ContentProvider {
         }
     }
 
+    /**
+     * "sort/shuffled-N.csv": a header and N rows "id,name,value" with the ids
+     * 0 to N - 1 in a shuffled order (id = row * 7919 + 13 mod N, a
+     * permutation when N is not a multiple of 7919), for sorting.
+     */
+    private static void shuffled(int rows, OutputStream out) throws IOException {
+        StringBuilder text = new StringBuilder(1 << 16);
+        text.append("id,name,value\n");
+        for (long row = 0; row < rows; row++) {
+            long id = (row * 7919L + 13L) % rows;
+            text.append(id).append(",name-").append(id % 1000).append(',').append((id * 31L) % 100000L / 100.0).append('\n');
+            if (text.length() >= 1 << 16) {
+                out.write(text.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                text.setLength(0);
+            }
+        }
+        out.write(text.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
     /** "written": how many bytes the last pipe for the path arg delivered, or -1 while it runs. */
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
@@ -153,6 +172,10 @@ public final class FixtureProvider extends ContentProvider {
     private void writeTo(String source, String name, OutputStream out) throws IOException {
         if ("generated".equals(source) && DesktopFixtures.has(name)) {
             DesktopFixtures.write(name, out);
+            return;
+        }
+        if ("sort".equals(source) && name.startsWith("shuffled-") && name.endsWith(".csv")) {
+            shuffled(Integer.parseInt(name.substring(9, name.length() - 4)), out);
             return;
         }
         String folder;
