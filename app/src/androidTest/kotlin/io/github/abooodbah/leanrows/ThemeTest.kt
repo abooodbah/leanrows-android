@@ -32,7 +32,9 @@ class ThemeTest {
 
     @Before @After fun defaults() {
         context.getSharedPreferences(SavedSettings.FILE, 0).edit().clear().commit()
-        shell("cmd uimode night no")
+        // The system dark theme came with Android 10; on Android 8 the shell
+        // command is not needed, and its UiAutomation connection can drop.
+        if (Build.VERSION.SDK_INT >= 29) shell("cmd uimode night no")
     }
 
     private fun background(view: View) = (view.background as ColorDrawable).color
