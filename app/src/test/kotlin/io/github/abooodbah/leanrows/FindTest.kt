@@ -90,6 +90,35 @@ class FindTest {
         assertEquals(1L, table.next("needle", after = 0)?.row)
     }
 
+    /** Counts the bytes a search reads from the file. */
+    private class CountingSource(private val inner: ByteSource) : ByteSource {
+        var bytes = 0L
+        override val size: Long get() = inner.size
+        override fun read(position: Long, into: ByteArray, offset: Int, length: Int): Int =
+            inner.read(position, into, offset, length).also { if (it > 0) bytes += it }
+    }
+
+    @Test fun previousWithoutAMatchReadsTheFileAboutOnce() {
+        val data = DesktopFixtures.bytes("large-multiline.csv")
+        val source = CountingSource(ByteArraySource(data))
+        val large = Table(source, Format.CSV).also { it.scan() }
+        source.bytes = 0
+        assertNull(Finder(large).previous("zzqxj", false, large.rowCount))
+        assertTrue("read ${source.bytes} bytes of a ${data.size}-byte file", source.bytes <= data.size * 6L / 5)
+    }
+
+    @Test fun previousFindsAMatchFarBackAndReadsLittleForANearOne() {
+        val data = DesktopFixtures.bytes("large.log")
+        val source = CountingSource(ByteArraySource(data))
+        val large = Table(source, Format.LOG).also { it.scan() }
+        source.bytes = 0
+        assertEquals(Finder.Hit(5, wrapped = false), Finder(large).previous("row_id=5 ", false, 100_000))
+        assertTrue("read ${source.bytes} bytes of a ${data.size}-byte file", source.bytes <= data.size * 6L / 5)
+        source.bytes = 0
+        assertEquals(Finder.Hit(99_990, wrapped = false), Finder(large).previous("row_id=99990 ", false, 99_995))
+        assertTrue("read ${source.bytes} bytes for a match five rows back", source.bytes <= 2L * 1024 * 1024)
+    }
+
     @Test fun cancellingStopsTheSearch() {
         val large = table(DesktopFixtures.bytes("large.log"), Format.LOG)
         val finder = Finder(large)
