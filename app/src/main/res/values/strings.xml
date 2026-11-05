@@ -14,5 +14,16 @@
     <string name="sheet">Sheet</string>
     <string name="open_file">Open a file</string>
     <string name="copy">Copy</string>
+    <string name="more">More</string>
+    <string name="more_symbol">⋮</string>
+    <string name="cancel">Cancel</string>
+    <string name="sort_by">Sort by column…</string>
+    <string name="sort_text_ascending">Sort text ascending</string>
+    <string name="sort_text_descending">Sort text descending</string>
+    <string name="sort_numbers_ascending">Sort numbers ascending</string>
+    <string name="sort_numbers_descending">Sort numbers descending</string>
+    <string name="restore_order">Restore source order</string>
+    <string name="cancel_sort">Cancel sort</string>
+    <string name="no_sort_xlsx">Sorting does not work on Excel workbooks yet.</string>
     <string name="empty">Open a CSV, TSV, JSON Lines, log or Excel .xlsx file to see its rows.\n\nLeanRows only reads the file. It has no network access.</string>
 </resources>

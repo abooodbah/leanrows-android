@@ -45,7 +45,27 @@ class SortTableTest {
         return x.size.compareTo(y.size)
     }
 
-    private fun Viewer.headerPoint(column: Int): Pair<Float, Float> = onActivity { activity ->
+    /**
+     * The middle of [column]'s title on screen, or of Row for -1. Waits for the
+     * columns to be sized and pans the table so the title is in view.
+     */
+    private fun Viewer.headerPoint(column: Int): Pair<Float, Float> {
+        waitFor("the columns") { (it.stateForTest?.columns?.widths?.size ?: 0) > column }
+        onActivity { activity ->
+            val state = activity.stateForTest!!
+            if (column >= 0) {
+                val start = (0 until column).sumOf { state.columns.widths[it].toDouble() }.toFloat()
+                if (start - state.offsetX + state.columns.widths[column] > state.viewportWidth - state.columns.rowNumberWidth) {
+                    state.offsetX = start
+                    state.clampOffset()
+                    activity.findViewById<View>(R.id.header).invalidate()
+                }
+            }
+        }
+        return point(column)
+    }
+
+    private fun Viewer.point(column: Int): Pair<Float, Float> = onActivity { activity ->
         val header = activity.findViewById<View>(R.id.header)
         val location = IntArray(2).also { header.getLocationOnScreen(it) }
         val state = activity.stateForTest!!

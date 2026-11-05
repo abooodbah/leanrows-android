@@ -405,6 +405,46 @@ for label in "${LABELS[@]}"; do
   sleep 3
 done
 
+# Sorting: a shuffled file of a million rows by its first column, in text
+# order, through a tap on the column title. The time is the app's own line;
+# PSS is sampled every second while it runs. A build without sorting shows NA.
+SORT_FILE=file/sort/shuffled-1000000.csv
+declare -A SORT_MS=() SORT_PEAK=() SORT_AFTER=()
+open_document "$SORT_FILE" text/csv >/dev/null # The provider writes the file once.
+fully_drawn 300 >/dev/null
+for label in "${LABELS[@]}"; do
+  install "$label"
+  open_document "$SORT_FILE" text/csv >/dev/null
+  fully_drawn 120 >/dev/null
+  indexed_ms 120 >/dev/null
+  sleep 2
+  bounds=$(grep -o "resource-id=\"$PKG:id/header\"[^>]*bounds=\"\[[0-9]*,[0-9]*\]\[[0-9]*,[0-9]*\]\"" <<<"$(ui_dump)" | head -n 1 |
+    sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' || true)
+  if [ -n "$bounds" ]; then
+    read -r left top _ bottom <<<"$bounds"
+    adb logcat -c
+    # Past the row numbers, in the first column.
+    adb shell input tap $((left + 300)) $(((top + bottom) / 2))
+    if [ -n "$(wait_log "sort started" 10)" ]; then
+      peak=0
+      for _ in $(seq 1 600); do
+        line=$(adb logcat -d -s LeanRows:I | grep -o "sorted [0-9]* rows by column [0-9]* in [0-9]* ms" | head -n 1 || true)
+        if [ -n "$line" ]; then
+          SORT_MS[$label]=$(awk '{ print $(NF - 1) }' <<<"$line")
+          break
+        fi
+        pss=$(pss_of "$PKG")
+        if [[ "$pss" =~ ^[0-9]+$ ]] && [ "$pss" -gt "$peak" ]; then peak=$pss; fi
+        sleep 1
+      done
+      SORT_PEAK[$label]=$peak
+      sleep 5
+      SORT_AFTER[$label]=$(pss_of "$PKG")
+    fi
+  fi
+  log "$label sort of a million rows: ${SORT_MS[$label]:-NA} ms, peak PSS while sorting ${SORT_PEAK[$label]:-NA} KB, after ${SORT_AFTER[$label]:-NA} KB"
+done
+
 # The workbook: time to write the sheet as CSV, time until its rows are drawn
 # after a cold start, and memory. A build without .xlsx support shows NA.
 declare -A SHEET_MS=() SHEET_DRAWN=() SHEET_PSS=()
@@ -498,6 +538,15 @@ row() {
   row "Janky frames while rotating (software GPU, not a budget check)" "${rotate_jank[@]}"
   row "First row on screen before and after rotating" "${rotate_rows[@]}"
   row "App process PSS after rotating (KB)" "${rotate_pss[@]}"
+  sort_ms=(); sort_peak=(); sort_after=()
+  for label in "${LABELS[@]}"; do
+    sort_ms+=("${SORT_MS[$label]:-NA}")
+    sort_peak+=("${SORT_PEAK[$label]:-NA}")
+    sort_after+=("${SORT_AFTER[$label]:-NA}")
+  done
+  row "Sorting 1,000,001 shuffled rows by the first column, text (ms)" "${sort_ms[@]}"
+  row "Peak app PSS while sorting, sampled each second (KB)" "${sort_peak[@]}"
+  row "App PSS after the sort (KB)" "${sort_after[@]}"
   if [ -n "${WORKBOOK:-}" ]; then
     sheet=(); sheet_drawn=(); sheet_pss=()
     for label in "${LABELS[@]}"; do

@@ -49,6 +49,10 @@ class Table(val source: ByteSource, val format: Format) {
     @Volatile var rowCount = 0L
         private set
 
+    /** Bytes the scan has read so far. */
+    @Volatile var scannedBytes = 0L
+        private set
+
     /**
      * Reads the whole file once, in [CHUNK] steps. [progress] is called with
      * the rows found so far after each step; [cancelled] stops the walk early.
@@ -71,6 +75,7 @@ class Table(val source: ByteSource, val format: Format) {
             scanner.feed(buffer, 0, read, observe)
             position += read
             rowCount = row
+            scannedBytes = position
             progress(row)
         }
         unterminatedQuote = scanner.finish(observe)

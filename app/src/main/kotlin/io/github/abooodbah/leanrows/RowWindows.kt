@@ -12,7 +12,8 @@ import kotlin.math.abs
  * thread; [post] gets back to it.
  */
 class RowWindows(
-    private val table: Table,
+    /** Reads rows: the first (from 0) and how many; fewer at the end. */
+    private val read: (Long, Int) -> List<Row>,
     private val background: Executor,
     private val post: (Runnable) -> Unit,
     private val loaded: (first: Long, rows: List<Row>) -> Unit,
@@ -56,7 +57,7 @@ class RowWindows(
                 return@execute
             }
             val rows = try {
-                table.rows(window * Table.WINDOW, Table.WINDOW)
+                read(window * Table.WINDOW, Table.WINDOW)
             } catch (error: IOException) {
                 post(Runnable {
                     pending -= window
