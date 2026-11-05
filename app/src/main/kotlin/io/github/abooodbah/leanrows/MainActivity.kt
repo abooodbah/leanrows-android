@@ -60,6 +60,7 @@ class MainActivity : Activity() {
     private val generation = AtomicInteger()
     private var document: Document? = null
     private var drawnReported = false
+    private var created = 0L
 
     /** An open .xlsx file. Its sheets are shown one at a time, each as CSV. */
     private class Workbook(val book: XlsxBook, val source: DescriptorSource) : AutoCloseable {
@@ -143,6 +144,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        created = SystemClock.uptimeMillis()
         setContentView(R.layout.activity_main)
         root = findViewById(R.id.root)
         title = findViewById(R.id.title)
@@ -475,7 +477,11 @@ class MainActivity : Activity() {
         }
         if (!drawnReported) {
             drawnReported = true
-            list.post { reportFullyDrawn() }
+            list.post {
+                reportFullyDrawn()
+                // scripts/measure.sh reads this line, also after the activity is recreated.
+                Log.i(TAG, "rows drawn ${SystemClock.uptimeMillis() - created} ms after create")
+            }
         }
     }
 
@@ -666,6 +672,7 @@ class MainActivity : Activity() {
         }
         val search = document.findGeneration.incrementAndGet()
         status.text = "Finding “$text”…"
+        val started = SystemClock.uptimeMillis()
         document.findThread.execute {
             val stale = { !document.current || document.findGeneration.get() != search }
             val hit = try {
@@ -678,6 +685,8 @@ class MainActivity : Activity() {
                 main.post { if (!stale()) status.text = "Find stopped: ${error.message}" }
                 return@execute
             }
+            // scripts/measure.sh reads this line.
+            Log.i(TAG, "find ${if (forward) "next" else "previous"} ${hit?.row ?: "none"} in ${SystemClock.uptimeMillis() - started} ms")
             main.post {
                 if (stale()) return@post
                 if (hit == null) {

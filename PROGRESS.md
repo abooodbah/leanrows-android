@@ -2,6 +2,84 @@
 
 Updated with every merge. The next session starts here.
 
+## Plan for 0.2.0
+
+Work in this order, one pull request per change, each merged when CI is
+green. Tests first: the failing tests go in their own commit before the
+change.
+
+1. Efficiency review. Extend the budgets job (`scripts/measure.sh`) so it
+   also measures Find, a system theme switch, a rotation and allocations
+   while scrolling, on release builds. Write the findings into the table
+   below. Fix the clear wins, one per pull request, with before and after
+   numbers. List the rest for the maintainer.
+2. Column sorting, ported from desktop LeanRows 0.4.0 (see below).
+   - Sort engine first (JVM tests): text and numeric order with the
+     desktop's rules, ties in source order, bounded memory, temporary files
+     in the app's cache. Unlike desktop 0.4.0, the file is read once from
+     start to end (no read per row) and runs are joined by a multi-way
+     merge (not two at a time). Measured on 10 million rows.
+   - Then the screen: tap a column title to sort, tap again to reverse,
+     long-press it for text or numeric order, tap Row to restore the
+     source order, Cancel while it runs. Row numbers, Find and Go to row
+     keep the file's own numbers. A free-space check before a large sort.
+     An .xlsx sheet is not sorted; the app says so. Emulator tests first.
+3. The five themes of LeanMark 0.6.0 (System, Light, Dark, Dim, Dusk) with
+   its exact colours, the theme button with its coloured dot and a tooltip
+   that names the theme, and a settings button that opens a sheet with
+   theme and zoom. Zoom enlarges the table only. Both are remembered.
+4. Version 0.2.0: version bump pull request, annotated tag v0.2.0, a GitHub
+   pre-release with plain notes, the "Release files" workflow for the APK,
+   AAB and .sha256 files, and the "Play bundle" workflow. Nothing is
+   uploaded to Google Play.
+
+## Desktop features the app lacks
+
+Desktop releases after 2026-10-29: only 0.4.0 (2026-11-02), column
+sorting. 0.3.0 (2026-10-29, .xlsx) is already in the app since 0.1.1.
+
+| Desktop 0.4.0 feature | On Android |
+| --- | --- |
+| Click a column header to sort the whole file ascending, click again to reverse | Ported: tap a column title |
+| Right-click a header for text or numeric order; the same commands in the overflow menu | Ported: long-press a column title, and the More menu |
+| Click the Row header, or Restore source order, to go back | Ported: tap Row, or More > Restore source order |
+| Cancel sort keeps the view you had | Ported: Cancel next to the progress, and in More |
+| Text order by bytes, case sensitive; exact numeric order (integers, decimals, exponents); numbers, then text, then empty values in both directions; ties keep the file's order | Ported with the desktop's test cases |
+| Row numbers, Find and Go to row keep the original numbers | Ported |
+| 16 MiB sort memory, temporary files in the app's data folder, removed when done and after a crash | Ported: 8 MiB, files in the app's cache, unlinked as soon as they are open so nothing is left behind |
+| A sort that will not fit on the drive or in the 8 GiB limit is refused before it starts | Ported: checked against the free space of the app's cache |
+| Sorting a .xlsx workbook says it does not work yet | Ported (the app could sort the sheet's CSV copy, but keeps the desktop rule) |
+| One sort at a time across tabs | Skipped: the app has one file open at a time |
+| Sort commands in the overflow menu and keyboard access | The More menu has them; no keyboard shortcuts on a phone |
+
+Skipped from earlier desktop releases, and why: tabs and several open
+files (0.2.0; Android shows one file per window, and the system's recent
+apps list already switches between files), keyboard shortcuts (no
+keyboard on most phones), the installer and Explorer registration
+(Android uses the open-with filters in the manifest).
+
+## Efficiency review
+
+Measured on release builds by the budgets job (API 34 emulator, no GPU),
+CI run 41982387830 (PR #14) unless a row says otherwise; "main" is the 0.1.2
+code with only the new log lines.
+
+| Place | What it costs | Measured (main) | Proposed fix |
+| --- | --- | --- | --- |
+| Find previous (`Finder.last`) | Steps back one checkpoint section (about 32 rows) at a time, reads a whole 64 KiB chunk and allocates 576 KiB for each, and when it wraps it searches the whole file again | 2,654 ms with no match in large-multiline.csv, against 364 ms for Find next; on the JVM it read 408 MB of the 9.6 MB file | Step back at least 1 MiB at a time, reuse the buffers, search only the rest of the file when wrapping |
+| System light or dark switch (manifest `configChanges` lacks `uiMode`) | The activity is recreated: the file is opened and indexed again and the list goes back to row 1 (an .xlsx sheet is written out again) | 424 ms until the rows are drawn again, and the place in the file is lost | Handle `uiMode` and recolour in place; done with the five themes |
+| APK: Kotlin metadata (`kotlin/*.kotlin_builtins`) and `DebugProbesKt.bin` | Files only kotlin-reflect and coroutine debugging read; the app uses neither | about 12,400 of 217,221 bytes (the largest of them, from the CI size report) | Exclude them when packaging |
+| APK: `resources.arsc` | androidx.core brings strings in about 80 languages; the app is in English | 28,420 bytes | Keep English resources only (`localeFilters`) |
+| Scrolling | A content description string per bound row and one ellipsized string per cell | 4,490 to 4,600 objects allocated over 10 swipes through 100,001 rows | None: small, and needed for TalkBack |
+| Rotation | No recreate (`configChanges` covers it); one layout pass | 3 frames; PSS 26.7 MB after, 25.2 MB before | None |
+| Open | Cold start to first frame and to rows | first frame 51 ms over the empty app, rows drawn 354 to 378 ms over it | None: under the 1 s budget |
+| Indexing (`Table.scan`) | Reads 64 KiB at a time | 178 to 201 ms for 100,001 rows | None now; a larger chunk is a small gain, left for the maintainer |
+| Row reads (`Table.rows`) | Allocates a 64 KiB and a 4 KiB buffer per 128-row window | part of the 4,600 objects above | None: small |
+| Dead code | `Format.label` and `Format.delimited` are unused | R8 removes them from the APK | Left as is; no size cost |
+| Dependencies | Only androidx.recyclerview, which brings androidx.core, collection and customview; R8 keeps only what is used | classes.dex 159,879 bytes stored | None |
+
+Zoom did not exist before 0.2.0; it is measured with the settings sheet.
+
 ## Done
 
 - Gradle project: Kotlin, classic Views. One library: androidx.recyclerview
@@ -33,7 +111,8 @@ Updated with every merge. The next session starts here.
 
 ## In progress
 
-- Release v0.1.1.
+- Efficiency review: measuring (PR "Measure find, theme switch, rotation
+  and allocations").
 
 ## Remaining
 
