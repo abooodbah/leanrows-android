@@ -113,7 +113,10 @@ class TableTest {
     @Test
     fun goToRowScrollsThere() = Viewer.view("file/generated/large.log").use { viewer ->
         viewer.waitForScan()
-        viewer.onActivity { it.findViewById<Button>(R.id.go_to).performClick() }
+        // Go to row is in the More menu.
+        viewer.onActivity { it.findViewById<Button>(R.id.more).performClick() }
+        viewer.waitFor("the More menu") { it.popupForTest != null }
+        viewer.onActivity { it.popupForTest!!.menu.performIdentifierAction(R.id.go_to, 0) }
         viewer.waitFor("the dialog") { it.dialogForTest?.isShowing == true }
         viewer.onActivity {
             val dialog = it.dialogForTest!!
