@@ -67,6 +67,14 @@ android {
         xmlReport = false
     }
 
+    packaging {
+        resources {
+            // Read only by kotlin-reflect and by coroutine debugging; the app
+            // uses neither. scripts/apk-contents.py checks they stay out.
+            excludes += listOf("kotlin/**", "DebugProbesKt.bin")
+        }
+    }
+
     // The dependency list that AGP encrypts for Google Play is kept out of the APK,
     // where IzzyOnDroid flags it as an unreadable blob, and kept in the Play
     // bundle.
