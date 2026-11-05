@@ -8,4 +8,28 @@
     <color name="rule">#E8E4DC</color>
     <color name="accent">#1D4ED8</color>
     <color name="ic_launcher_background">#0E0D0B</color>
+
+    <!-- Dialog and menu colours for each theme, from LeanMark 0.6.0's tokens
+         (surface, text-primary, text-secondary, link). The table and the
+         toolbar take theirs from Palette in Themes.kt; a test keeps both the
+         same. -->
+    <color name="light_surface">#ffffff</color>
+    <color name="light_text">#1a1917</color>
+    <color name="light_text_secondary">#5a554c</color>
+    <color name="light_link">#1d4ed8</color>
+    <color name="dark_surface">#1a1917</color>
+    <color name="dark_text">#faf9f7</color>
+    <color name="dark_text_secondary">#d5cfc3</color>
+    <color name="dark_link">#60a5fa</color>
+    <color name="dim_surface">#25282c</color>
+    <color name="dim_text">#c8ccd2</color>
+    <color name="dim_text_secondary">#9ea4ac</color>
+    <color name="dim_link">#86aee6</color>
+    <color name="dusk_surface">#29241e</color>
+    <color name="dusk_text">#d4c8b4</color>
+    <color name="dusk_text_secondary">#a99c87</color>
+    <color name="dusk_link">#e0a86e</color>
+    <!-- LeanMark's grey dot ring; the fast scroller uses it in every theme. -->
+    <color name="scroller">#8c8c8c</color>
+    <color name="scroller_track">#408c8c8c</color>
 </resources>

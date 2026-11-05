@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Items of the More menu and the column menu. -->
+    <item name="go_to" type="id" />
     <item name="sort_by" type="id" />
     <item name="sort_text_ascending" type="id" />
     <item name="sort_text_descending" type="id" />

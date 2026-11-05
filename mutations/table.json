@@ -173,5 +173,75 @@
     "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
     "old": "R.id.sort_numbers_ascending -> sort(document, SortRequest(target, SortMode.NUMERIC, false))",
     "new": "R.id.sort_numbers_ascending -> sort(document, SortRequest(target, SortMode.TEXT, false))"
+  },
+  {
+    "name": "Dusk shows Dim's colours",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Themes.kt",
+    "old": "Theme.DUSK -> DUSK",
+    "new": "Theme.DUSK -> DIM"
+  },
+  {
+    "name": "Dim's text in Dark's colour",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Themes.kt",
+    "old": "textPrimary = rgb(0xC8CCD2)",
+    "new": "textPrimary = rgb(0xFAF9F7)"
+  },
+  {
+    "name": "Zoom skips 110%",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Themes.kt",
+    "old": "0.9, 1.0, 1.1, 1.25",
+    "new": "0.9, 1.0, 1.2, 1.25"
+  },
+  {
+    "name": "The dialog colours differ from the palette",
+    "suite": "jvm",
+    "file": "app/src/main/res/values/colors.xml",
+    "old": "<color name=\"dusk_link\">#e0a86e</color>",
+    "new": "<color name=\"dusk_link\">#e0a86f</color>"
+  },
+  {
+    "name": "System ignores the phone's dark mode",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "if (chosenTheme == Theme.SYSTEM && Palette.of(chosenTheme, systemDark()) != palette) applyTheme()",
+    "new": "if (false) applyTheme()"
+  },
+  {
+    "name": "A dark switch recreates the screen",
+    "suite": "device",
+    "file": "app/src/main/AndroidManifest.xml",
+    "old": "android:configChanges=\"uiMode|orientation",
+    "new": "android:configChanges=\"orientation"
+  },
+  {
+    "name": "The theme button does nothing",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "themeButton.setOnClickListener { chooseTheme(chosenTheme.next) }",
+    "new": "themeButton.setOnClickListener { }"
+  },
+  {
+    "name": "The theme is not remembered",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "        saved.theme = chosen\n",
+    "new": ""
+  },
+  {
+    "name": "The zoom is not remembered",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "        saved.zoom = level\n",
+    "new": ""
+  },
+  {
+    "name": "Zoom does not reach the table",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/TableViews.kt",
+    "old": "val z = zoom.toFloat()",
+    "new": "val z = 1f"
   }
 ]
