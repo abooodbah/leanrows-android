@@ -259,8 +259,16 @@ class MainActivity : Activity() {
 
         Sources.clean(cacheDir)
         if (!openFrom(intent)) showMessage(getString(R.string.empty), showOpen = true)
-        // scripts/measure.sh prints this line: where onCreate spends its time.
-        Log.i(TAG, "create steps: layout ${inflated - created} ms, settings ${settingsRead - inflated} ms, theme ${themed - settingsRead} ms, rest ${SystemClock.uptimeMillis() - themed} ms")
+        // scripts/measure.sh prints this line: where the start spends its time.
+        val steps = "process start to create ${created - android.os.Process.getStartUptimeMillis()} ms, layout ${inflated - created} ms, " +
+            "settings ${settingsRead - inflated} ms, theme ${themed - settingsRead} ms, rest ${SystemClock.uptimeMillis() - themed} ms"
+        var firstDraw = true
+        window.decorView.viewTreeObserver.addOnDrawListener {
+            if (firstDraw) {
+                firstDraw = false
+                Log.i(TAG, "create steps: $steps, first draw ${SystemClock.uptimeMillis() - created} ms after create")
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
