@@ -1056,7 +1056,7 @@ class MainActivity : Activity() {
         findText.backgroundTintList = ColorStateList.valueOf(palette.link)
         matchCase.setTextColor(palette.textPrimary)
         matchCase.buttonTintList = ColorStateList.valueOf(palette.link)
-        findViewById<ImageButton>(R.id.settings).imageTintList = ColorStateList.valueOf(palette.link)
+        findViewById<ImageButton>(R.id.settings).setImageDrawable(SlidersDrawable(dp(20), palette.link))
         val (left, right) = Palette.dot(chosenTheme)
         themeButton.setImageDrawable(DotDrawable(left, right, dp(14), dp(1).toFloat().coerceAtLeast(1f)))
         val name = chosenTheme.displayName(systemDark())

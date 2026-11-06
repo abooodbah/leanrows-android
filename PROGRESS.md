@@ -130,6 +130,10 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## In progress
 
+- The first frame was about 100 ms later than main since #20. Bisected on
+  the budgets job: the settings button's vector icon. It is now drawn in
+  code (this pull request).
+
 - Release v0.2.0: this version bump, then the tag, the pre-release and
   the release files.
 
@@ -186,9 +190,6 @@ Theme mutations: all caught (run 41989890809, see #20).
   after the sort. Not yet measured for ten million rows on a phone.
 - A file that changes while it is sorted is not detected (the desktop
   checks its size and time); the app reads one open copy of it.
-- The first frame is about 100 ms later than in 0.1.2 on the emulator since
-  the themes (#20); the app's own part did not grow, so the cause is still
-  open. Rows still appear well under the 1 s budget there.
 - The store screenshots in `store/` still show the 0.1 toolbar.
 - The allocation count over the swipes in the budgets job is not reliable
   yet (4,600 objects in some runs, 5 in others).
