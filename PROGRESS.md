@@ -202,16 +202,16 @@ Theme mutations: all caught (run 41989890809, see #20).
 
 | Measure | 0.1.2 | 0.2.0 |
 | --- | ---: | ---: |
-| Release APK, all ABIs (bytes) | 217,221 | 216,660 |
-| First frame minus the empty app (ms) | 51 | 157 |
-| Rows drawn minus the empty app (ms) | 354 | 475 |
-| PSS after large-multiline.csv (KB) | 25,297 | 26,242 |
+| Release APK, all ABIs (bytes) | 217,221 | 216,628 |
+| First frame minus the empty app (ms) | 51 | 89 |
+| Rows drawn minus the empty app (ms) | 354 | 267 |
+| PSS after large-multiline.csv (KB) | 25,297 | 26,169 |
 | Find previous, no match, 100,001 rows (ms) | 2,654 | 190 to 221 |
 | System switch to dark until rows drawn (ms) | 424 | 33 |
 | Sort 1,000,001 rows, text (ms) | NA | 1,091 to 1,490 |
 | Peak PSS while sorting 1,000,001 rows (KB) | NA | 57,812 |
 
-The 0.2.0 column is from the themes run (42051398128), sort and Find from
+The 0.2.0 column is from run 42178980021 (#27), sort and Find from
 runs 41988225938 and 41987717205. Since #27 (run 42178980021) the first
 frame is 89 ms and rows 267 ms over the empty app, against 51 and 354 ms
 for 0.1.2. Two identical builds differed by 65 ms in a control run
