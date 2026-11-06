@@ -47,7 +47,8 @@
         <ImageButton
             android:id="@+id/theme"
             style="@style/ToolbarIcon"
-            android:contentDescription="@string/theme" />
+            android:contentDescription="@string/theme"
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/settings"
