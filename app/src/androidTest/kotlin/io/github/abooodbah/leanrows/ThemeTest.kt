@@ -77,6 +77,28 @@ class ThemeTest {
         assertTrue("first row ${viewer.firstVisible()}, was $first", kotlin.math.abs(viewer.firstVisible() - first) <= 2)
     }
 
+    /**
+     * The settings icon is drawn in code: as a vector drawable in an
+     * ImageButton it made the first frame about 140 ms later on the emulator.
+     */
+    @Test
+    fun theSettingsIconIsDrawnInCodeInTheLinkColour() = Viewer.view("file/desktop/weather-stations.csv").use { viewer ->
+        viewer.waitForScan()
+        viewer.onActivity { it.findViewById<View>(R.id.theme).performClick() } // Light
+        viewer.waitFor("Light") { it.themeForTest == Theme.LIGHT }
+        val (drawable, pixels) = viewer.onActivity { activity ->
+            val button = activity.findViewById<android.widget.ImageButton>(R.id.settings)
+            val icon = button.drawable
+            val bitmap = android.graphics.Bitmap.createBitmap(icon.intrinsicWidth, icon.intrinsicHeight, android.graphics.Bitmap.Config.ARGB_8888)
+            icon.setBounds(0, 0, bitmap.width, bitmap.height)
+            icon.draw(android.graphics.Canvas(bitmap))
+            val all = IntArray(bitmap.width * bitmap.height).also { bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height) }
+            icon to all.count { (it and 0xFFFFFF) == (Palette.LIGHT.link and 0xFFFFFF) && (it ushr 24) == 0xFF }
+        }
+        assertTrue("icon: ${drawable.javaClass.name}", drawable is SlidersDrawable)
+        assertTrue("$pixels pixels in the link colour", pixels > 20)
+    }
+
     @Test
     fun theSettingsSheetSetsThemeAndZoomForTheTableOnly() = Viewer.view("file/desktop/weather-stations.csv").use { viewer ->
         viewer.waitForScan()
