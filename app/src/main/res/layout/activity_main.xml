@@ -53,7 +53,8 @@
             android:id="@+id/settings"
             style="@style/ToolbarIcon"
             android:contentDescription="@string/settings"
-            android:src="@drawable/ic_settings" />
+            android:src="@drawable/ic_settings"
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/more"
