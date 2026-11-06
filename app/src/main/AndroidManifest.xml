@@ -25,7 +25,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:configChanges="uiMode|orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
