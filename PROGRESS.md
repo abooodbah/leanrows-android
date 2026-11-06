@@ -128,14 +128,15 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 - Store texts, data safety, content rating, closed-test plan and light and
   dark screenshots in `store/`; signing steps in the README.
 
+- The first frame was about 100 ms later than main after #20. Bisected on
+  the budgets job: the settings button's vector icon. #27 draws it in code.
+  First frame minus the empty app 99 to 89 ms, rows drawn minus the empty
+  app 359 to 267 ms, main against the branch (run 42178980021).
+
 ## In progress
 
-- The first frame was about 100 ms later than main since #20. Bisected on
-  the budgets job: the settings button's vector icon. It is now drawn in
-  code (this pull request).
-
-- Release v0.2.0: this version bump, then the tag, the pre-release and
-  the release files.
+- Release v0.2.0: the version bump is merged (#21); the tag, the
+  pre-release and the release files are done by the maintainer.
 
 ## Remaining
 
@@ -201,19 +202,21 @@ Theme mutations: all caught (run 41989890809, see #20).
 
 | Measure | 0.1.2 | 0.2.0 |
 | --- | ---: | ---: |
-| Release APK, all ABIs (bytes) | 217,221 | 216,660 |
-| First frame minus the empty app (ms) | 51 | 157 |
-| Rows drawn minus the empty app (ms) | 354 | 475 |
-| PSS after large-multiline.csv (KB) | 25,297 | 26,242 |
+| Release APK, all ABIs (bytes) | 217,221 | 216,628 |
+| First frame minus the empty app (ms) | 51 | 89 |
+| Rows drawn minus the empty app (ms) | 354 | 267 |
+| PSS after large-multiline.csv (KB) | 25,297 | 26,169 |
 | Find previous, no match, 100,001 rows (ms) | 2,654 | 190 to 221 |
 | System switch to dark until rows drawn (ms) | 424 | 33 |
 | Sort 1,000,001 rows, text (ms) | NA | 1,091 to 1,490 |
 | Peak PSS while sorting 1,000,001 rows (KB) | NA | 57,812 |
 
-The 0.2.0 column is from the themes run (42051398128), sort and Find from
-runs 41988225938 and 41987717205. The first frame is about 100 ms later than
-0.1.2; the app's own log puts its part (process start to first draw) at
-100 to 170 ms, so the cause is outside the app's code and not found yet.
+The 0.2.0 column is from run 42178980021 (#27), sort and Find from
+runs 41988225938 and 41987717205. Since #27 (run 42178980021) the first
+frame is 89 ms and rows 267 ms over the empty app, against 51 and 354 ms
+for 0.1.2. Two identical builds differed by 65 ms in a control run
+(42177209022), so the first frame is within the emulator's spread of
+0.1.2.
 
 Earlier numbers:
 
