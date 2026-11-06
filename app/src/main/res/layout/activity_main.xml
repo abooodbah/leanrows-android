@@ -52,8 +52,7 @@
         <ImageButton
             android:id="@+id/settings"
             style="@style/ToolbarIcon"
-            android:contentDescription="@string/settings"
-            android:src="@drawable/ic_settings" />
+            android:contentDescription="@string/settings" />
 
         <Button
             android:id="@+id/more"
