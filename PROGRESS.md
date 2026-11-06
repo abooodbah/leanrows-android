@@ -95,6 +95,11 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
   check, no sorting for .xlsx. A million shuffled rows sort in 1,490 ms on
   the emulator (release build, run 41988225938); peak PSS 57,846 KB while
   sorting, 27,262 KB after.
+- The five themes of LeanMark 0.6.0, the theme dot and the settings sheet
+  with theme and table zoom (#20). A system switch to dark recolours in
+  place and keeps the file and the place.
+  Theme button 15 ms, zoom step 16 ms, system dark switch 207 to 33 ms
+  (run 42051398128).
 
 - Gradle project: Kotlin, classic Views. One library: androidx.recyclerview
   1.4.0 for the table (it brings androidx.core and androidx.collection; the
@@ -125,14 +130,36 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## In progress
 
-- The five themes, the theme dot and the settings sheet (#20).
-- Then version 0.2.0.
+- Release v0.2.0: this version bump, then the tag, the pre-release and
+  the release files.
 
 ## Remaining
 
 - The phone test below, on real hardware.
 - Play Console setup and the closed test (see `store/closed-test.md`);
   these need the maintainer's account.
+
+## Mutation checks
+
+Device mutations for sorting (workflow run 41988605064), all caught:
+
+| Mutation | File | First failing test | Failing tests |
+| --- | --- | --- | ---: |
+| file:// URIs are read | `MainActivity.kt` | TableTest.fileUrisAreRefused | 1 |
+| Stream copies are left in the cache | `Sources.kt` | TableTest.aStreamWithoutASizeIsCopiedThenShown | 1 |
+| Sideways drags are not taken | `TableViews.kt` | TableTest.aSidewaysDragMovesTheColumnsButNotTheRowNumbers | 1 |
+| Match case is ignored | `MainActivity.kt` | TableTest.findJumpsToTheNextMatchingRow | 1 |
+| The unterminated quote is not reported | `MainActivity.kt` | TableTest.anUnterminatedQuoteIsReported | 1 |
+| A second tap does not reverse the sort | `MainActivity.kt` | SortTableTest.tappingATitleSortsTheWholeFileAndTappingAgainReverses | 1 |
+| Tapping Row does not restore the file's order | `MainActivity.kt` | SortTableTest.aLongPressOffersNumericOrderAndTappingRowRestoresTheFile | 1 |
+| Workbooks are sorted | `MainActivity.kt` | SortTableTest.aWorkbookIsNotSortedAndSaysSo | 1 |
+| Sorted rows show their place, not their number | `TableViews.kt` | SortTableTest.aMillionRowsSortInBoundedMemoryAndStaySortedWhenRotated | 4 |
+| Find shows the file row's place, not the sorted one | `MainActivity.kt` | SortTableTest.findAndGoToRowUseTheFilesOwnNumbersInASortedView | 1 |
+| Go to row ignores the sort | `MainActivity.kt` | SortTableTest.findAndGoToRowUseTheFilesOwnNumbersInASortedView | 1 |
+| No space check before a sort | `MainActivity.kt` | SortTableTest.aSortThatWouldNotFitIsRefusedBeforeItStarts | 1 |
+| The long-press menu sorts as text | `MainActivity.kt` | SortTableTest.aLongPressOffersNumericOrderAndTappingRowRestoresTheFile | 1 |
+
+Theme mutations: all caught (run 41989890809, see #20).
 
 ## Known gaps
 
@@ -151,8 +178,43 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
   first.
 - The emulator has no GPU, so start time and jank from CI are not the
   budget check.
+- Sorting does not work on .xlsx sheets yet, as on the desktop; the app says
+  so. A number with an exponent past about 9.2e18, such as 1e99999999999999999999,
+  makes a numeric sort stop with a message, as on the desktop.
+- Peak PSS while sorting a million rows is about 32 MB over the file's own
+  (the runtime grows its heap for the 8 MiB of sort buffers); it falls back
+  after the sort. Not yet measured for ten million rows on a phone.
+- A file that changes while it is sorted is not detected (the desktop
+  checks its size and time); the app reads one open copy of it.
+- The first frame is about 100 ms later than in 0.1.2 on the emulator since
+  the themes (#20); the app's own part did not grow, so the cause is still
+  open. Rows still appear well under the 1 s budget there.
+- The store screenshots in `store/` still show the 0.1 toolbar.
+- The allocation count over the swipes in the budgets job is not reliable
+  yet (4,600 objects in some runs, 5 in others).
 
 ## Measured numbers
+
+0.2.0 against 0.1.2, release builds, budgets job on the API 34 emulator.
+"0.1.2" is main in the run of #14 (41982387830).
+
+| Measure | 0.1.2 | 0.2.0 |
+| --- | ---: | ---: |
+| Release APK, all ABIs (bytes) | 217,221 | 216,660 |
+| First frame minus the empty app (ms) | 51 | 157 |
+| Rows drawn minus the empty app (ms) | 354 | 475 |
+| PSS after large-multiline.csv (KB) | 25,297 | 26,242 |
+| Find previous, no match, 100,001 rows (ms) | 2,654 | 190 to 221 |
+| System switch to dark until rows drawn (ms) | 424 | 33 |
+| Sort 1,000,001 rows, text (ms) | NA | 1,091 to 1,490 |
+| Peak PSS while sorting 1,000,001 rows (KB) | NA | 57,812 |
+
+The 0.2.0 column is from the themes run (42051398128), sort and Find from
+runs 41988225938 and 41987717205. The first frame is about 100 ms later than
+0.1.2; the app's own log puts its part (process start to first draw) at
+100 to 170 ms, so the cause is outside the app's code and not found yet.
+
+Earlier numbers:
 
 From the budgets job on an API 34 emulator (SwiftShader, no GPU), PR #2,
 run 40841223895. The empty app took 1,484 ms to its first frame there.
@@ -187,13 +249,13 @@ minutes.
 
 From the release page on GitHub, download onto the phone:
 
-- `LeanRows-0.1.1.apk`: the release build (minified), signed with a throwaway
+- `LeanRows-0.2.0.apk`: the release build (minified), signed with a throwaway
   key. Use this one for timing.
-- `LeanRows-0.1.1-debug.apk`: the debug build, for comparison only. It is slower
+- `LeanRows-0.2.0-debug.apk`: the debug build, for comparison only. It is slower
   by design.
 - `empty-app.apk`: an app with one empty screen, for the start-time
   baseline with adb (it has no launcher icon).
-- `LeanRows-0.1.1-phone-test-files.zip`: the files below. Unzip it into
+- `LeanRows-0.2.0-phone-test-files.zip`: the files below. Unzip it into
   Downloads.
 
 Open the APK from the browser's downloads or the Files app and allow the
@@ -267,8 +329,26 @@ After scrolling `large-multiline.csv`: `adb shell dumpsys meminfo io.github.aboo
 With adb, after opening the workbook: `adb logcat -d -s LeanRows:I` shows
 "wrote sheet 1 as 100001 CSV rows in N ms".
 
+### Sorting
+
+1. Open `large-multiline.csv`. Tap the title "Column 1". The status line
+   shows the progress; note how long it takes until it says "sorted by
+   Column 1, text, ascending". Tap the title again: the order reverses.
+2. Long-press "Column 3" and choose Sort numbers ascending. Tap Row: the
+   file's own order comes back.
+3. Sort again and tap Cancel while it runs: the order you had stays.
+
+With adb: `adb logcat -d -s LeanRows:I` shows "sorted N rows by column C in
+M ms".
+
+### Themes
+
+Tap the dot in the toolbar five times: System, Light, Dark, Dim, Dusk and
+back. Open the settings (the sliders button), pick a theme, and zoom the
+table in and out. Close and open the app: both are kept.
+
 ### What to send back
 
 Phone model, Android version, the three start times and the empty-app time,
-what the scrolling bars looked like, the workbook time, and the memory
-numbers if you used adb.
+what the scrolling bars looked like, the workbook time, the sort time, and
+the memory numbers if you used adb.

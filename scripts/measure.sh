@@ -56,8 +56,10 @@ ROOT=no
 if adb root >/dev/null 2>&1; then
   # adbd restarts as root; the device is offline for a moment.
   sleep 3
-  for _ in $(seq 1 60); do
+  for attempt in $(seq 1 180); do
     if adb shell true >/dev/null 2>&1; then break; fi
+    # adbd sometimes stays offline after the restart until adb reconnects.
+    if [ $((attempt % 20)) = 0 ]; then adb reconnect offline >/dev/null 2>&1 || true; fi
     sleep 1
   done
   if [ "$(adb shell id -u 2>/dev/null | tr -d '\r' || true)" = 0 ]; then ROOT=yes; fi

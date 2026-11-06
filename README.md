@@ -10,6 +10,16 @@ An .xlsx sheet is written as CSV into the app's cache and shown by the same
 row engine. The rules for cell text and the limits are in
 [docs/XLSX.md](docs/XLSX.md).
 
+Tap a column title to sort the whole file by it, as desktop LeanRows 0.4.0
+does: tap again to reverse, long-press for text or numeric order, tap Row
+for the file's own order. Rows keep their own numbers. A sort uses at most
+about 8 MB of memory and temporary files in the app's cache. Excel sheets
+are not sorted yet.
+
+The app has LeanMark's five themes (System, Light, Dark, Dim, Dusk), a theme
+button with a coloured dot, and a settings sheet with the theme and the
+table zoom. What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
+
 Work in progress. Not yet on Google Play.
 
 ## Try it (closed test)
