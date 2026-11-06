@@ -221,6 +221,12 @@ for round in $(seq 1 "$ROUNDS"); do
   done
 done
 
+for label in "${LABELS[@]}"; do
+  f=$(median <<<"${FIRST_FRAME[$label]}"); d=$(median <<<"${DRAWN[$label]}")
+  echo "| $label | first frame $f | minus empty $(minus "$f" "$EMPTY_FIRST") | drawn minus empty $(minus "$d" "$EMPTY_FIRST") |"
+done
+exit 0
+
 pss_of() {
   # The summary line reads "TOTAL PSS: 12345 ..." on current Android and the
   # table row "TOTAL 12345 ..." on older versions.
