@@ -7,13 +7,14 @@ Open a file from your file manager, from an email attachment or from your browse
 What it does:
 - Rows appear while the rest of the file is still being counted
 - Find text anywhere in the file, with an option to match case
+- Sort the whole file by any column, as text or as numbers; tap again to reverse, tap Row for the file's own order
 - Go to a row by number
 - Tap a cell to see all of it and copy it
 - Drag sideways to see more columns; the row numbers stay in place
 - A fast scroller for long files
 - Quoted fields with commas and line breaks, as in spreadsheet exports
 - Excel workbooks: one sheet at a time, with a Sheet button for the others
-- Light and dark themes that follow the system setting
+- Five themes: System, Light, Dark, Dim and Dusk, and a zoom for the table
 - Keeps your place when you rotate the phone
 
 Privacy:
