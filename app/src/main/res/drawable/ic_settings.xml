@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LeanMark's settings icon: three sliders (assets/reader.html). Tinted in code. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <path
+        android:pathData="M2,4h6M11,4h3M2,8h2M7,8h7M2,12h7M12,12h2"
+        android:strokeWidth="1.6"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M8,4a1.5,1.5 0,1 0,3 0a1.5,1.5 0,1 0,-3 0M4,8a1.5,1.5 0,1 0,3 0a1.5,1.5 0,1 0,-3 0M9,12a1.5,1.5 0,1 0,3 0a1.5,1.5 0,1 0,-3 0"
+        android:strokeWidth="1.6"
+        android:strokeColor="#FFFFFFFF" />
+</vector>

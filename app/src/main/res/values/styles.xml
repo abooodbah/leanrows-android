@@ -10,4 +10,71 @@
         <item name="android:textColor">@color/accent</item>
         <item name="android:textSize">15sp</item>
     </style>
+
+    <style name="ToolbarIcon" parent="android:Widget.Material.ImageButton">
+        <item name="android:layout_width">48dp</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
+        <item name="android:scaleType">center</item>
+    </style>
+
+    <!-- Dialogs and menus in each theme's colours. -->
+    <style name="Dialog.Light" parent="android:Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorBackground">@color/light_surface</item>
+        <item name="android:textColorPrimary">@color/light_text</item>
+        <item name="android:textColorSecondary">@color/light_text_secondary</item>
+        <item name="android:colorAccent">@color/light_link</item>
+    </style>
+    <style name="Dialog.Dark" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorBackground">@color/dark_surface</item>
+        <item name="android:textColorPrimary">@color/dark_text</item>
+        <item name="android:textColorSecondary">@color/dark_text_secondary</item>
+        <item name="android:colorAccent">@color/dark_link</item>
+    </style>
+    <style name="Dialog.Dim" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorBackground">@color/dim_surface</item>
+        <item name="android:textColorPrimary">@color/dim_text</item>
+        <item name="android:textColorSecondary">@color/dim_text_secondary</item>
+        <item name="android:colorAccent">@color/dim_link</item>
+    </style>
+    <style name="Dialog.Dusk" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorBackground">@color/dusk_surface</item>
+        <item name="android:textColorPrimary">@color/dusk_text</item>
+        <item name="android:textColorSecondary">@color/dusk_text_secondary</item>
+        <item name="android:colorAccent">@color/dusk_link</item>
+    </style>
+    <style name="Menu.Light" parent="android:Theme.Material.Light">
+        <item name="android:colorBackground">@color/light_surface</item>
+        <item name="android:textColorPrimary">@color/light_text</item>
+    </style>
+    <style name="Menu.Dark" parent="android:Theme.Material">
+        <item name="android:colorBackground">@color/dark_surface</item>
+        <item name="android:textColorPrimary">@color/dark_text</item>
+    </style>
+    <style name="Menu.Dim" parent="android:Theme.Material">
+        <item name="android:colorBackground">@color/dim_surface</item>
+        <item name="android:textColorPrimary">@color/dim_text</item>
+    </style>
+    <style name="Menu.Dusk" parent="android:Theme.Material">
+        <item name="android:colorBackground">@color/dusk_surface</item>
+        <item name="android:textColorPrimary">@color/dusk_text</item>
+    </style>
+
+    <style name="SettingsLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">16dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="SettingsChoice">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:drawablePadding">8dp</item>
+        <item name="android:textSize">15sp</item>
+    </style>
 </resources>

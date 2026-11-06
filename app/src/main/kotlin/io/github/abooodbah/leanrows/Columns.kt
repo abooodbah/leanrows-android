@@ -12,9 +12,9 @@ package io.github.abooodbah.leanrows
 class Columns(
     val preview: Boolean,
     private val measure: (String) -> Float,
-    private val padding: Float,
-    private val minimum: Float,
-    private val maximum: Float,
+    private var padding: Float,
+    private var minimum: Float,
+    private var maximum: Float,
     /** Characters measured per cell; anything longer is at [maximum] anyway. */
     private val measuredChars: Int = 80,
     /** Title columns A, B, C as a spreadsheet does, instead of "Column 1". */
@@ -75,6 +75,18 @@ class Columns(
         if (wanted <= rowNumberWidth) return false
         rowNumberWidth = wanted
         return true
+    }
+
+    /**
+     * Zooms every width by [factor], with the limits for later rows. [measure]
+     * must already measure at the new size.
+     */
+    fun scale(factor: Float) {
+        padding *= factor
+        minimum *= factor
+        maximum *= factor
+        for (index in widths.indices) widths[index] *= factor
+        rowNumberWidth *= factor
     }
 
     /** The column at [x] pixels from the left edge of the first column, or -1. */

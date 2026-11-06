@@ -66,8 +66,8 @@ code with only the new log lines.
 
 | Place | What it costs | Measured (main) | Proposed fix |
 | --- | --- | --- | --- |
-| Find previous (`Finder.last`) | Steps back one checkpoint section (about 32 rows) at a time, reads a whole 64 KiB chunk and allocates 576 KiB for each, and when it wraps it searches the whole file again | 2,654 and 3,036 ms with no match in large-multiline.csv, against 364 and 399 ms for Find next; on the JVM it read 408 MB of the 9.6 MB file | Step back at least 1 MiB at a time, reuse the buffers, search only the rest of the file when wrapping. Fixed in the Find previous pull request |
-| System light or dark switch (manifest `configChanges` lacks `uiMode`) | The activity is recreated: the file is opened and indexed again and the list goes back to row 1 (an .xlsx sheet is written out again) | 424 ms until the rows are drawn again, and the place in the file is lost | Handle `uiMode` and recolour in place; done with the five themes |
+| Find previous (`Finder.last`) | Steps back one checkpoint section (about 32 rows) at a time, reads a whole 64 KiB chunk and allocates 576 KiB for each, and when it wraps it searches the whole file again | 2,654 and 3,036 ms with no match in large-multiline.csv, against 364 and 399 ms for Find next; on the JVM it read 408 MB of the 9.6 MB file | Fixed in #19: steps back at least 1 MiB at a time, reuses the buffers, searches only the rest of the file when wrapping. 2,224 to 190 ms (run 41987717205) |
+| System light or dark switch (manifest `configChanges` lacks `uiMode`) | The activity is recreated: the file is opened and indexed again and the list goes back to row 1 (an .xlsx sheet is written out again) | 424 and 566 ms until the rows are drawn again, and the place in the file is lost | Fixed with the five themes (#20): `uiMode` is handled and the colours change in place; an emulator test checks the same activity keeps the file and the place |
 | APK: Kotlin metadata (`kotlin/*.kotlin_builtins`) and `DebugProbesKt.bin` | Files only kotlin-reflect and coroutine debugging read; the app uses neither | 9 entries, 12,835 bytes stored | Fixed in #15: excluded when packaging. APK 217,221 to 203,088 bytes (run 41986249081) |
 | APK: `resources.arsc` | androidx.core brings strings in many languages; the app is in English | 28,420 bytes | Fixed in #16: English resources only. APK 217,221 to 200,241 bytes (run 41984977500) |
 | Scrolling | A content description string per bound row and one ellipsized string per cell | 4,490 to 4,600 objects allocated over 10 swipes through 100,001 rows in one run, 5 in another, so the count is not reliable yet | None: small, and needed for TalkBack |
@@ -88,6 +88,13 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
   desktop's order and test cases, one read of the file and a multi-way
   merge: 10,000,000 rows in 9.7 s (text) and 12.5 s (numbers) on the JVM
   with a 40 MiB heap.
+- Find previous reads the file about once (#19): 2,224 to 190 ms with no
+  match in 100,001 rows on the emulator.
+- Sorting on the screen (#18): tap a title, tap again to reverse, long-press
+  for numbers, tap Row for the file's order, More menu, Cancel, a space
+  check, no sorting for .xlsx. A million shuffled rows sort in 1,490 ms on
+  the emulator (release build, run 41988225938); peak PSS 57,846 KB while
+  sorting, 27,262 KB after.
 
 - Gradle project: Kotlin, classic Views. One library: androidx.recyclerview
   1.4.0 for the table (it brings androidx.core and androidx.collection; the
@@ -118,8 +125,8 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## In progress
 
-- Find previous reads the file about once (this pull request).
-- Sorting on the screen (#18), then the themes and the settings sheet.
+- The five themes, the theme dot and the settings sheet (#20).
+- Then version 0.2.0.
 
 ## Remaining
 

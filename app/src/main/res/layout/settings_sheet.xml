@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The settings sheet: theme and table zoom, as in LeanMark's settings panel. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/settings_sheet"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/settings_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/settings_close"
+                style="@style/ToolbarButton"
+                android:contentDescription="@string/close_settings"
+                android:text="@string/close" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/theme_label"
+            style="@style/SettingsLabel"
+            android:text="@string/theme" />
+
+        <RadioGroup
+            android:id="@+id/theme_choices"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton android:id="@+id/theme_system" style="@style/SettingsChoice" android:text="System" />
+            <RadioButton android:id="@+id/theme_light" style="@style/SettingsChoice" android:text="Light" />
+            <RadioButton android:id="@+id/theme_dark" style="@style/SettingsChoice" android:text="Dark" />
+            <RadioButton android:id="@+id/theme_dim" style="@style/SettingsChoice" android:text="Dim" />
+            <RadioButton android:id="@+id/theme_dusk" style="@style/SettingsChoice" android:text="Dusk" />
+        </RadioGroup>
+
+        <TextView
+            android:id="@+id/zoom_label"
+            style="@style/SettingsLabel"
+            android:text="@string/zoom" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/zoom_out"
+                style="@style/ToolbarButton"
+                android:contentDescription="@string/zoom_out"
+                android:minWidth="48dp"
+                android:text="−"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/zoom_value"
+                android:layout_width="64dp"
+                android:layout_height="wrap_content"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center"
+                android:textSize="15sp" />
+
+            <Button
+                android:id="@+id/zoom_in"
+                style="@style/ToolbarButton"
+                android:contentDescription="@string/zoom_in"
+                android:minWidth="48dp"
+                android:text="+"
+                android:textSize="20sp" />
+
+            <Button
+                android:id="@+id/zoom_reset"
+                style="@style/ToolbarButton"
+                android:text="@string/zoom_reset" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

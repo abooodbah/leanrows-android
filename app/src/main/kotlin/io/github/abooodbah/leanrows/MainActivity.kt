@@ -2,10 +2,14 @@ package io.github.abooodbah.leanrows
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.content.res.Configuration
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -14,16 +18,23 @@ import android.os.Looper
 import android.os.SystemClock
 import android.text.InputType
 import android.util.Log
+import android.view.Choreographer
+import android.view.ContextThemeWrapper
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.PopupMenu
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -55,6 +66,20 @@ class MainActivity : Activity() {
     private lateinit var findText: EditText
     private lateinit var matchCase: CheckBox
     private lateinit var sortCancel: Button
+    private lateinit var themeButton: ImageButton
+    private lateinit var saved: SavedSettings
+    private var chosenTheme = Theme.SYSTEM
+    private var zoom = Zoom.DEFAULT
+    private var palette = Palette.LIGHT
+    private var settingsSheet: Dialog? = null
+
+    /**
+     * The colours the window and the system bars have now. At start they are
+     * the XML theme's, which match System in the current light or dark mode,
+     * so a start in those colours does not touch the window: changing the
+     * bars before the first frame cost about 150 ms on the emulator.
+     */
+    private var windowPalette: Palette? = null
     private lateinit var layout: LinearLayoutManager
     private lateinit var style: TableStyle
     private lateinit var pan: HorizontalPan
@@ -155,7 +180,8 @@ class MainActivity : Activity() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
             val row = RowView(parent.context, document.state)
-            row.layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, style.rowHeight)
+            // The height follows the zoom: RowView measures itself.
+            row.layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             row.setOnClickListener { showCell(row) }
             return Holder(row)
         }
@@ -169,6 +195,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         created = SystemClock.uptimeMillis()
         setContentView(R.layout.activity_main)
+        val inflated = SystemClock.uptimeMillis()
         root = findViewById(R.id.root)
         title = findViewById(R.id.title)
         status = findViewById(R.id.status)
@@ -181,7 +208,15 @@ class MainActivity : Activity() {
         findText = findViewById(R.id.find_text)
         matchCase = findViewById(R.id.match_case)
         sortCancel = findViewById(R.id.sort_cancel)
-        style = TableStyle(this)
+        themeButton = findViewById(R.id.theme)
+        saved = SavedSettings(this)
+        chosenTheme = saved.theme
+        zoom = saved.zoom
+        palette = Palette.of(chosenTheme, systemDark())
+        style = TableStyle(this, palette, zoom)
+        val settingsRead = SystemClock.uptimeMillis()
+        applyTheme()
+        val themed = SystemClock.uptimeMillis()
         layOutEdgeToEdge()
 
         layout = LinearLayoutManager(this)
@@ -199,7 +234,8 @@ class MainActivity : Activity() {
 
         findViewById<Button>(R.id.open).setOnClickListener { pickFile() }
         findViewById<Button>(R.id.message_open).setOnClickListener { pickFile() }
-        findViewById<Button>(R.id.go_to).setOnClickListener { askForRow() }
+        themeButton.setOnClickListener { chooseTheme(chosenTheme.next) }
+        findViewById<View>(R.id.settings).setOnClickListener { showSettings() }
         findViewById<Button>(R.id.sheet).setOnClickListener { askForSheet() }
         findViewById<Button>(R.id.find).setOnClickListener { showFindBar() }
         findViewById<Button>(R.id.more).setOnClickListener { showMore(it) }
@@ -223,12 +259,29 @@ class MainActivity : Activity() {
 
         Sources.clean(cacheDir)
         if (!openFrom(intent)) showMessage(getString(R.string.empty), showOpen = true)
+        // scripts/measure.sh prints this line: where the start spends its time.
+        val steps = "process start to create ${created - android.os.Process.getStartUptimeMillis()} ms, layout ${inflated - created} ms, " +
+            "settings ${settingsRead - inflated} ms, theme ${themed - settingsRead} ms, rest ${SystemClock.uptimeMillis() - themed} ms"
+        var firstDraw = true
+        window.decorView.viewTreeObserver.addOnDrawListener {
+            if (firstDraw) {
+                firstDraw = false
+                Log.i(TAG, "create steps: $steps, first draw ${SystemClock.uptimeMillis() - created} ms after create")
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         openFrom(intent)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // The system switched light and dark: recolour in place, keeping the
+        // open file and the place in it.
+        if (chosenTheme == Theme.SYSTEM && Palette.of(chosenTheme, systemDark()) != palette) applyTheme()
     }
 
     override fun onDestroy() {
@@ -399,7 +452,7 @@ class MainActivity : Activity() {
         val document = document ?: return
         val workbook = document.workbook ?: return
         val names = workbook.book.sheets.map { it.name }.toTypedArray()
-        dialogForTest = AlertDialog.Builder(this)
+        dialogForTest = AlertDialog.Builder(dialogContext())
             .setTitle("Sheet")
             .setItems(names) { _, which -> if (which != document.sheet) switchSheet(document, which) }
             .setNegativeButton(R.string.close, null)
@@ -612,12 +665,12 @@ class MainActivity : Activity() {
         val document = document ?: return
         val rows = maxOf(document.table.rowCount, document.shownRows)
         if (rows == 0L) return
-        val field = EditText(this).apply {
+        val field = EditText(dialogContext()).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
             hint = "1 to ${numbers.format(rows)}"
             setSingleLine()
         }
-        val dialog = AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(dialogContext())
             .setTitle(R.string.go_to_row)
             .setView(field)
             .setPositiveButton("Go", null)
@@ -660,15 +713,15 @@ class MainActivity : Activity() {
         val (column, text) = row.cellAtLastTouch() ?: return
         val document = document ?: return
         val name = document.state.columns.titles.getOrElse(column) { "Column ${column + 1}" }
-        val body = TextView(this).apply {
+        val body = TextView(dialogContext()).apply {
             this.text = text.ifEmpty { "(empty)" }
             setTextIsSelectable(true)
-            setTextColor(getColor(R.color.ink))
+            setTextColor(palette.textPrimary)
             textSize = 15f
             val padding = (20 * resources.displayMetrics.density).toInt()
             setPadding(padding, padding / 2, padding, 0)
         }
-        dialogForTest = AlertDialog.Builder(this)
+        dialogForTest = AlertDialog.Builder(dialogContext())
             .setTitle("Row ${row.number.toLongOrNull()?.let { numbers.format(it) } ?: row.number}, $name")
             .setView(body)
             .setPositiveButton(R.string.copy) { _, _ ->
@@ -777,7 +830,7 @@ class MainActivity : Activity() {
 
     private fun showColumnMenu(column: Int) {
         val document = document ?: return
-        val popup = PopupMenu(this, header)
+        val popup = PopupMenu(menuContext(), header)
         if (column >= 0) addSortItems(popup)
         popup.menu.add(0, R.id.restore_order, 0, R.string.restore_order).isEnabled = document.order != null
         showPopup(popup, document, column)
@@ -785,8 +838,9 @@ class MainActivity : Activity() {
 
     private fun showMore(anchor: View) {
         val document = document
-        val popup = PopupMenu(this, anchor)
+        val popup = PopupMenu(menuContext(), anchor)
         if (document != null) {
+            popup.menu.add(0, R.id.go_to, 0, R.string.go_to_row)
             popup.menu.add(0, R.id.sort_by, 0, R.string.sort_by)
             val column = (document.sorting ?: document.order?.request)?.column
             if (column != null) addSortItems(popup)
@@ -816,6 +870,7 @@ class MainActivity : Activity() {
             val target = if (column >= 0) column else (document?.sorting ?: document?.order?.request)?.column ?: 0
             if (document != null) {
                 when (item.itemId) {
+                    R.id.go_to -> askForRow()
                     R.id.sort_by -> askForSortColumn(document)
                     R.id.sort_text_ascending -> sort(document, SortRequest(target, SortMode.TEXT, false))
                     R.id.sort_text_descending -> sort(document, SortRequest(target, SortMode.TEXT, true))
@@ -834,7 +889,7 @@ class MainActivity : Activity() {
 
     private fun askForSortColumn(document: Document) {
         val titles = document.state.columns.titles.toTypedArray()
-        dialogForTest = AlertDialog.Builder(this)
+        dialogForTest = AlertDialog.Builder(dialogContext())
             .setTitle(R.string.sort_by)
             .setItems(titles) { _, which -> headerTapped(which) }
             .setNegativeButton(R.string.close, null)
@@ -972,6 +1027,172 @@ class MainActivity : Activity() {
         }
     }
 
+    // Themes and zoom
+
+    private fun systemDark() =
+        resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+
+    private fun chooseTheme(chosen: Theme) {
+        chosenTheme = chosen
+        saved.theme = chosen
+        applyTheme()
+    }
+
+    /** Colours every view, the table and the system bars in the current theme. */
+    private fun applyTheme() {
+        val started = SystemClock.uptimeMillis()
+        palette = Palette.of(chosenTheme, systemDark())
+        style.apply(palette, zoom)
+        for (id in listOf(R.id.root, R.id.toolbar, R.id.find_bar, R.id.status_bar)) findViewById<View>(id).setBackgroundColor(palette.surface)
+        findViewById<View>(R.id.table_frame).setBackgroundColor(palette.canvas)
+        title.setTextColor(palette.textPrimary)
+        status.setTextColor(palette.textSecondary)
+        messageText.setTextColor(palette.textPrimary)
+        for (id in listOf(R.id.sheet, R.id.find, R.id.open, R.id.more, R.id.find_previous, R.id.find_next, R.id.find_close, R.id.message_open, R.id.sort_cancel)) {
+            findViewById<Button>(id).setTextColor(palette.link)
+        }
+        findText.setTextColor(palette.textPrimary)
+        findText.setHintTextColor(palette.textDisabled)
+        findText.backgroundTintList = ColorStateList.valueOf(palette.link)
+        matchCase.setTextColor(palette.textPrimary)
+        matchCase.buttonTintList = ColorStateList.valueOf(palette.link)
+        findViewById<ImageButton>(R.id.settings).imageTintList = ColorStateList.valueOf(palette.link)
+        val (left, right) = Palette.dot(chosenTheme)
+        themeButton.setImageDrawable(DotDrawable(left, right, dp(14), dp(1).toFloat().coerceAtLeast(1f)))
+        val name = chosenTheme.displayName(systemDark())
+        themeButton.contentDescription = "Theme: $name. Activate to change theme."
+        themeButton.tooltipText = "Theme: $name"
+        if (windowPalette == null) windowPalette = Palette.of(Theme.SYSTEM, systemDark())
+        if (palette != windowPalette) {
+            windowPalette = palette
+            window.setBackgroundDrawable(ColorDrawable(palette.canvas))
+            @Suppress("DEPRECATION")
+            window.statusBarColor = palette.surface
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = palette.surface
+            lightBars(!palette.dark)
+        }
+        header.invalidate()
+        for (index in 0 until list.childCount) list.getChildAt(index).invalidate()
+        settingsSheet?.let { colourSheet(it) }
+        Choreographer.getInstance().postFrameCallback {
+            // scripts/measure.sh reads this line.
+            Log.i(TAG, "theme applied in ${SystemClock.uptimeMillis() - started} ms")
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun lightBars(light: Boolean) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            val both = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+            window.insetsController?.setSystemBarsAppearance(if (light) both else 0, both)
+        } else {
+            val both = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            val flags = window.decorView.systemUiVisibility and both.inv()
+            window.decorView.systemUiVisibility = if (light) flags or both else flags
+        }
+    }
+
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogContext() = ContextThemeWrapper(
+        this,
+        when (palette) {
+            Palette.DARK -> R.style.Dialog_Dark
+            Palette.DIM -> R.style.Dialog_Dim
+            Palette.DUSK -> R.style.Dialog_Dusk
+            else -> R.style.Dialog_Light
+        },
+    )
+
+    private fun menuContext() = ContextThemeWrapper(
+        this,
+        when (palette) {
+            Palette.DARK -> R.style.Menu_Dark
+            Palette.DIM -> R.style.Menu_Dim
+            Palette.DUSK -> R.style.Menu_Dusk
+            else -> R.style.Menu_Light
+        },
+    )
+
+    /** Zooms the table only, keeping the first row on screen in place. */
+    private fun setZoom(level: Double) {
+        if (level == zoom) return
+        val started = SystemClock.uptimeMillis()
+        val factor = (level / zoom).toFloat()
+        zoom = level
+        saved.zoom = level
+        style.apply(palette, zoom)
+        val first = layout.findFirstVisibleItemPosition()
+        document?.let { document ->
+            document.state.columns.scale(factor)
+            document.state.offsetX *= factor
+            document.state.clampOffset()
+            list.recycledViewPool.clear()
+            @Suppress("NotifyDataSetChanged") // Every row changes size.
+            document.adapter.notifyDataSetChanged()
+            if (first >= 0) layout.scrollToPositionWithOffset(first, 0)
+        }
+        header.requestLayout()
+        header.invalidate()
+        settingsSheet?.findViewById<TextView>(R.id.zoom_value)?.text = "${Zoom.percent(zoom)}%"
+        Choreographer.getInstance().postFrameCallback {
+            // scripts/measure.sh reads this line.
+            Log.i(TAG, "zoom ${Zoom.percent(zoom)}% applied in ${SystemClock.uptimeMillis() - started} ms")
+        }
+    }
+
+    private val themeChoices = listOf(
+        R.id.theme_system to Theme.SYSTEM,
+        R.id.theme_light to Theme.LIGHT,
+        R.id.theme_dark to Theme.DARK,
+        R.id.theme_dim to Theme.DIM,
+        R.id.theme_dusk to Theme.DUSK,
+    )
+
+    /** The settings sheet: theme and zoom, at the bottom of the screen. */
+    private fun showSettings() {
+        val sheet = Dialog(dialogContext())
+        sheet.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        sheet.setContentView(R.layout.settings_sheet)
+        sheet.window?.let { window ->
+            window.setGravity(Gravity.BOTTOM)
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        val choices = sheet.findViewById<RadioGroup>(R.id.theme_choices)
+        for ((id, choice) in themeChoices) {
+            val button = sheet.findViewById<RadioButton>(id)
+            val (left, right) = Palette.dot(choice)
+            button.setCompoundDrawablesRelativeWithIntrinsicBounds(DotDrawable(left, right, dp(12), 1f), null, null, null)
+            button.isChecked = choice == chosenTheme
+        }
+        choices.setOnCheckedChangeListener { _, checked ->
+            themeChoices.firstOrNull { it.first == checked }?.let { (_, chosen) -> if (chosen != chosenTheme) chooseTheme(chosen) }
+        }
+        sheet.findViewById<TextView>(R.id.zoom_value).text = "${Zoom.percent(zoom)}%"
+        sheet.findViewById<View>(R.id.zoom_in).setOnClickListener { setZoom(Zoom.step(zoom, 1)) }
+        sheet.findViewById<View>(R.id.zoom_out).setOnClickListener { setZoom(Zoom.step(zoom, -1)) }
+        sheet.findViewById<View>(R.id.zoom_reset).setOnClickListener { setZoom(Zoom.step(zoom, 0)) }
+        sheet.findViewById<View>(R.id.settings_close).setOnClickListener { sheet.dismiss() }
+        sheet.setOnDismissListener { if (settingsSheet === sheet) settingsSheet = null }
+        colourSheet(sheet)
+        settingsSheet = sheet
+        sheet.show()
+    }
+
+    private fun colourSheet(sheet: Dialog) {
+        sheet.window?.setBackgroundDrawable(ColorDrawable(palette.surface))
+        sheet.findViewById<TextView>(R.id.settings_title).setTextColor(palette.textPrimary)
+        sheet.findViewById<TextView>(R.id.zoom_value).setTextColor(palette.textPrimary)
+        for (id in listOf(R.id.theme_label, R.id.zoom_label)) sheet.findViewById<TextView>(id).setTextColor(palette.textSecondary)
+        for (id in listOf(R.id.settings_close, R.id.zoom_in, R.id.zoom_out, R.id.zoom_reset)) sheet.findViewById<Button>(id).setTextColor(palette.link)
+        for ((id, _) in themeChoices) {
+            val button = sheet.findViewById<RadioButton>(id)
+            button.setTextColor(palette.textPrimary)
+            button.buttonTintList = ColorStateList.valueOf(palette.link)
+        }
+    }
+
     // Window
 
     @Suppress("DEPRECATION")
@@ -1013,6 +1234,11 @@ class MainActivity : Activity() {
     internal val sortedForTest: SortedOrder? get() = document?.order
     internal val sortingForTest: Boolean get() = document?.sorting != null
     internal fun goToRowForTest(number: Long) = goTo(number - 1)
+    internal val paletteForTest: Palette get() = palette
+    internal val themeForTest: Theme get() = chosenTheme
+    internal val zoomForTest: Double get() = zoom
+    internal val dotForTest: Pair<Int, Int> get() = Palette.dot(chosenTheme)
+    internal val settingsForTest: Dialog? get() = settingsSheet
 
     /** Stands in for the cache's free space in tests. */
     internal var freeSpaceForTest: Long? = null

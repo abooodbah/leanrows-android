@@ -206,7 +206,7 @@ for round in $(seq 1 "$ROUNDS"); do
     for _ in $(seq 1 "$STARTS_PER_ROUND"); do
       total=$(open_document "$SMALL" "$SMALL_TYPE" | sed -n 's/^TotalTime: *//p')
       drawn=$(fully_drawn 10)
-      log "round $round $label: first frame ${total:-NA} ms, drawn $drawn ms"
+      log "round $round $label: first frame ${total:-NA} ms, drawn $drawn ms; $(adb logcat -d -s LeanRows:I | grep -o 'create steps:.*' | head -n 1 || true)"
       # The app's own "phase NAME N ms" lines, from creation to each step.
       while read -r name value; do
         [ -n "$name" ] || continue
@@ -445,6 +445,41 @@ for label in "${LABELS[@]}"; do
   log "$label sort of a million rows: ${SORT_MS[$label]:-NA} ms, peak PSS while sorting ${SORT_PEAK[$label]:-NA} KB, after ${SORT_AFTER[$label]:-NA} KB"
 done
 
+# The theme button and the table zoom, with the large file open. A build
+# without them shows NA. Each ends where it started (System, 100%).
+declare -A THEME_TAP=() ZOOM_STEP=()
+for label in "${LABELS[@]}"; do
+  install "$label"
+  open_large
+  dump=$(ui_dump)
+  theme_button=$(centre_of "$dump" theme)
+  if [ -n "$theme_button" ]; then
+    adb shell input tap $theme_button # System to Light
+    sleep 2
+    adb logcat -c
+    adb shell input tap $theme_button # Light to Dark
+    THEME_TAP[$label]=$(wait_log "theme applied" 20 | grep -o "in [0-9]* ms" | awk '{ print $2 }' || true)
+    for _ in 1 2 3; do adb shell input tap $theme_button; sleep 1; done # Dim, Dusk, System
+  fi
+  settings_button=$(centre_of "$dump" settings)
+  if [ -n "$settings_button" ]; then
+    adb shell input tap $settings_button
+    sleep 2
+    dump=$(ui_dump)
+    zoom_in=$(centre_of "$dump" zoom_in)
+    zoom_reset=$(centre_of "$dump" zoom_reset)
+    if [ -n "$zoom_in" ]; then
+      adb logcat -c
+      adb shell input tap $zoom_in
+      ZOOM_STEP[$label]=$(wait_log "zoom 110% applied" 20 | grep -o "in [0-9]* ms" | awk '{ print $2 }' || true)
+      sleep 1
+      if [ -n "$zoom_reset" ]; then adb shell input tap $zoom_reset; fi
+    fi
+    adb shell input keyevent BACK
+  fi
+  log "$label theme button to Dark ${THEME_TAP[$label]:-NA} ms, zoom to 110% ${ZOOM_STEP[$label]:-NA} ms"
+done
+
 # The workbook: time to write the sheet as CSV, time until its rows are drawn
 # after a cold start, and memory. A build without .xlsx support shows NA.
 declare -A SHEET_MS=() SHEET_DRAWN=() SHEET_PSS=()
@@ -544,6 +579,13 @@ row() {
     sort_peak+=("${SORT_PEAK[$label]:-NA}")
     sort_after+=("${SORT_AFTER[$label]:-NA}")
   done
+  theme_tap=(); zoom_step=()
+  for label in "${LABELS[@]}"; do
+    theme_tap+=("${THEME_TAP[$label]:-NA}")
+    zoom_step+=("${ZOOM_STEP[$label]:-NA}")
+  done
+  row "Theme button, Light to Dark, until the next frame (ms)" "${theme_tap[@]}"
+  row "Zoom 100% to 110%, until the next frame (ms)" "${zoom_step[@]}"
   row "Sorting 1,000,001 shuffled rows by the first column, text (ms)" "${sort_ms[@]}"
   row "Peak app PSS while sorting, sampled each second (KB)" "${sort_peak[@]}"
   row "App PSS after the sort (KB)" "${sort_after[@]}"

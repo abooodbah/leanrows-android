@@ -18,40 +18,67 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** Sizes and paints shared by the header and every row. */
-class TableStyle(context: Context) {
+/**
+ * Sizes and paints shared by the header and every row. [apply] sets a
+ * theme's colours and the table zoom; only the table is zoomed.
+ */
+class TableStyle(context: Context, palette: Palette = Palette.LIGHT, zoom: Double = Zoom.DEFAULT) {
     private val metrics = context.resources.displayMetrics
     private fun dp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, metrics)
     private fun sp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, metrics)
 
-    val padding = dp(12f)
-    val rowHeight = (sp(14f) * 2.6f).roundToInt()
-    val headerHeight = (sp(13f) * 2.8f).roundToInt()
-    val minimumWidth = dp(56f)
-    val maximumWidth = dp(280f)
-    val maximumPreviewWidth = dp(1600f)
+    var zoom = zoom
+        private set
+    var padding = 0f
+        private set
+    var rowHeight = 0
+        private set
+    var headerHeight = 0
+        private set
+    var minimumWidth = 0f
+        private set
+    var maximumWidth = 0f
+        private set
+    var maximumPreviewWidth = 0f
+        private set
 
-    val text = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-        textSize = sp(14f)
-        color = context.getColor(R.color.ink)
-    }
-    val number = TextPaint(text).apply {
-        color = context.getColor(R.color.muted)
+    val text = TextPaint(Paint.ANTI_ALIAS_FLAG)
+    val number = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.RIGHT
         fontFeatureSettings = "tnum"
     }
-    val title = TextPaint(text).apply {
-        textSize = sp(13f)
-        color = context.getColor(R.color.muted)
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    val title = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+    val rule = Paint()
+    val surface = Paint()
+    val canvas = Paint()
+    val highlight = Paint()
+
+    init {
+        apply(palette, zoom)
     }
-    val rule = Paint().apply {
-        color = context.getColor(R.color.rule)
-        strokeWidth = dp(1f)
+
+    fun apply(palette: Palette, zoom: Double) {
+        this.zoom = zoom
+        val z = zoom.toFloat()
+        padding = dp(12f * z)
+        rowHeight = (sp(14f * z) * 2.6f).roundToInt()
+        headerHeight = (sp(13f * z) * 2.8f).roundToInt()
+        minimumWidth = dp(56f * z)
+        maximumWidth = dp(280f * z)
+        maximumPreviewWidth = dp(1600f * z)
+        text.textSize = sp(14f * z)
+        text.color = palette.textPrimary
+        number.textSize = sp(14f * z)
+        number.color = palette.textSecondary
+        title.textSize = sp(13f * z)
+        title.color = palette.textSecondary
+        rule.color = palette.border
+        rule.strokeWidth = dp(1f)
+        surface.color = palette.surface
+        canvas.color = palette.canvas
+        // The row Find lands on, in the theme's selection colour.
+        highlight.color = palette.selection
     }
-    val surface = Paint().apply { color = context.getColor(R.color.surface) }
-    val canvas = Paint().apply { color = context.getColor(R.color.canvas) }
-    val highlight = Paint().apply { color = context.getColor(R.color.accent) and 0x00FFFFFF or 0x33000000 }
 
     fun columns(preview: Boolean, lettered: Boolean = false) = Columns(
         preview,
