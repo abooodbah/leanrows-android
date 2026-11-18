@@ -216,11 +216,20 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## In progress
 
-- 0.3.0, step 6: the version bump.
+- Release v0.3.0: the version bump is #36. This session could not push
+  tags or create releases. After #36 merges, the maintainer tags v0.3.0,
+  creates the GitHub pre-release with `docs/releases/v0.3.0.md`, runs
+  "Release files" for the tag (its first run with the attestation step), and
+  runs "Play bundle" if wanted.
 
 ## Remaining
 
-- The phone test below, on real hardware.
+- The phone test below, on real hardware, now with hiding columns and Copy
+  row.
+- Tag v0.3.0, the GitHub pre-release, "Release files" and "Play bundle"
+  (see In progress); this session cannot push tags.
+- Strip the footer line the session's GitHub proxy added to the bodies of
+  #29 to #36.
 - Play Console setup and the closed test (see `store/closed-test.md`);
   these need the maintainer's account.
 
@@ -246,7 +255,25 @@ Device mutations for sorting (workflow run 41988605064), all caught:
 
 Theme mutations: all caught (run 41989890809, see #20).
 
+0.3.0 mutations, all caught: Copy row (#31, run 44316875150), hiding
+columns (#32, device run 44323386381; JVM run locally after Maven Central
+refused the CI job with HTTP 429), zoom (#34, run 44334946599), and the
+release workflow check (#33, by hand). The tables are in the pull requests.
+
 ## Known gaps
+
+- The fast scroller is drawn in one grey for light and one for dark system
+  mode, not in the app theme's colours (desktop 0.5.1 themes its scroll
+  bars). RecyclerView creates its fast scroller from XML and keeps its
+  drawables private.
+- Hidden columns are still read and decoded with their row; only cutting
+  them to width and drawing them is skipped.
+- A hide or show message stays under the status line until the next sort,
+  Find, or hide or show.
+- `fastlane/.../full_description.txt` and `store/` do not mention hiding
+  columns or Copy row; the maintainer edits the Play listing.
+- The README says the bundle on a GitHub release is signed with CI's
+  throwaway key, but `release.yml` signs it with the release key.
 
 - .xls, .xlsm and .xlsb are not supported. Number formats other than dates
   and times are not applied, so 12.5% shows as 0.125.
@@ -276,6 +303,32 @@ Theme mutations: all caught (run 41989890809, see #20).
   yet (4,600 objects in some runs, 5 in others).
 
 ## Measured numbers
+
+0.3.0 against 0.2.0, release builds, budgets job on the API 34 emulator,
+with `base` = `v0.2.0` (CI run 44387335223):
+
+| Measure | 0.2.0 | 0.3.0 |
+| --- | ---: | ---: |
+| Release APK, all ABIs (bytes) | 216,556 | 218,796 |
+| First frame minus the empty app (ms) | 194 | 163 |
+| Rows drawn minus the empty app (ms) | 392 | 349 |
+| large-multiline.csv drawn after a cold start (ms) | 768 | 734 |
+| PSS after large-multiline.csv (KB) | 26,181 | 26,162 |
+| Janky frames over 10 swipes (software GPU) | 159 | 144 |
+| Find previous, no match, 100,001 rows (ms) | 101 | 102 |
+| System switch to dark until rows drawn (ms) | 41 | 36 |
+| Sort 1,000,001 rows, text (ms) | 787 | 787 |
+| Peak PSS while sorting (KB) | 60,137 | 60,798 |
+| 13 zoom changes, median until the next frame (ms) | 16 | 16 |
+
+The same comparison in three other runs, first frame and rows drawn minus
+the empty app (0.2.0, then 0.3.0): run 44383486528, 154 and 221, 474 and
+540 ms (empty app 714 ms, the slowest emulator); run 44387328730, 48 and
+109, 239 and 254 ms; run 44337327373 (main with Copy row and Hide columns),
+208 and 220, 546 and 514 ms. Across the four runs the medians are 174 and
+192 ms for the first frame and 433 and 434 ms for the rows: the first
+frame varies more between runs than between versions, and nothing in
+0.3.0 runs before it.
 
 0.2.0 against 0.1.2, release builds, budgets job on the API 34 emulator.
 "0.1.2" is main in the run of #14 (41982387830).
