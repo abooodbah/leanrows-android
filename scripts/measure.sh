@@ -469,10 +469,18 @@ for label in "${LABELS[@]}"; do
   if [ -n "$settings_button" ]; then
     adb shell input tap $settings_button
     sleep 2
-    dump=$(ui_dump)
-    zoom_in=$(centre_of "$dump" zoom_in)
+    # The sheet can still be opening at the first dump; look again a few times.
+    zoom_in=""
+    for _ in 1 2 3; do
+      dump=$(ui_dump)
+      zoom_in=$(centre_of "$dump" zoom_in)
+      [ -n "$zoom_in" ] && break
+      sleep 2
+    done
     zoom_reset=$(centre_of "$dump" zoom_reset)
     if [ -n "$zoom_in" ]; then
+      # Start from 100% whatever an earlier build left saved.
+      if [ -n "$zoom_reset" ]; then adb shell input tap $zoom_reset; sleep 1; fi
       adb logcat -c
       adb shell input tap $zoom_in
       ZOOM_STEP[$label]=$(wait_log "zoom 110% applied" 20 | grep -o "in [0-9]* ms" | awk '{ print $2 }' || true)
@@ -495,6 +503,7 @@ for label in "${LABELS[@]}"; do
     adb shell input keyevent BACK
   fi
   log "$label theme button to Dark ${THEME_TAP[$label]:-NA} ms, zoom to 110% ${ZOOM_STEP[$label]:-NA} ms"
+  log "$label zoom lines: $(adb logcat -d -s LeanRows:I | grep -o "zoom [0-9]*% applied in [0-9]* ms" | tr '\n' ';' || true)"
   log "$label 14 zoom steps: median ${ZOOM_RUN_MS[$label]:-NA} ms, frames ${ZOOM_FRAMES[$label]:-NA}, janky ${ZOOM_JANK[$label]:-NA}, p90 ${ZOOM_P90[$label]:-NA}"
 done
 
