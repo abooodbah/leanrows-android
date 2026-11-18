@@ -150,6 +150,9 @@ class RowView(context: Context, private val state: TableState) : View(context) {
         invalidate()
     }
 
+    /** The row for Copy row: its number and every cell, separated by tabs. */
+    fun copyText(): String = RowCopy.text(number, raw, state.columns.titles.size)
+
     /** The full text of the cell under the last touch, or null. */
     fun cellAtLastTouch(): Pair<Int, String>? {
         val left = state.columns.rowNumberWidth

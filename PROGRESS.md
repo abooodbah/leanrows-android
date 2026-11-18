@@ -121,6 +121,22 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## Done
 
+0.3.0 so far:
+
+- The plan above (#29). Its budgets run (44312402286, main against the
+  same code) measured the two items the 0.2.0 review found again: Find
+  previous with no match in 100,001 rows 160 and 178 ms (2,654 ms in
+  0.1.2), Find next 358 and 359 ms, and a system switch to dark 46 ms until
+  the rows are drawn again, with the file kept (424 ms and a reopened file
+  in 0.1.2). Both stay fixed.
+- The budgets job also runs when CI is started by hand on a branch, against
+  main (#30), so a pull request can be opened with its numbers. Its first
+  budgets attempt lost the emulator right after boot; the rerun passed.
+- Copy row (#31): the cell dialog has Copy row, which copies the row number
+  and every cell, separated by tabs, as desktop `Ctrl+C` copies a row.
+
+0.2.0:
+
 - 0.2.0 work so far: the budgets job also measures Find, a system theme
   switch, rotation and allocations (#14); Kotlin metadata left out of the
   APK (#15); English resources only (#16); the sort engine (#17), with the
@@ -174,7 +190,7 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## In progress
 
-- 0.3.0, step 1: this plan.
+- 0.3.0, step 3: hiding columns.
 
 ## Remaining
 
