@@ -20,6 +20,16 @@ for the file's own order. Rows keep their own numbers. A sort uses at most
 about 8 MB of memory and temporary files in the app's cache. Excel sheets
 are not sorted yet.
 
+Long-press a column title and choose Hide column to take it out of the
+view, as desktop LeanRows 0.6.0 does; Show all columns, on the same menu,
+brings every hidden column back. The More menu (⋮) has Hide column… with a
+list of the shown columns, and Show all columns. The file is not changed and
+nothing is saved: another file or another sheet shows every column. The last
+shown column cannot be hidden. Hidden columns are left out of Copy row and
+of sideways panning. A sorted column stays sorted when it is hidden, and the
+status line says so. Find still searches whole rows, hidden columns
+included, and says so while it shows a result.
+
 The app has LeanMark's five themes (System, Light, Dark, Dim, Dusk), a theme
 button with a coloured dot, and a settings sheet with the theme and the
 table zoom. What changed in each release is in [CHANGELOG.md](CHANGELOG.md).

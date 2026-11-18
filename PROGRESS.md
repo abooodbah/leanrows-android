@@ -57,7 +57,7 @@ already how the Android sort engine works.
 | 0.6.0 | A sorted column that is hidden keeps its order; the status marks it as hidden | Ported |
 | 0.6.0 | Find still searches whole rows and the status says so while a result is shown | Ported |
 | 0.6.0 | CSV, TSV and `.xlsx` sheets; sheet columns keep their letters | Ported |
-| 0.6.0 | Rows on screen skip decoding hidden fields | Ported: hidden cells are not cut to width or drawn; they are still split from the record, as on the desktop |
+| 0.6.0 | Rows on screen skip decoding hidden fields | Partly: hidden cells are not cut to width or drawn. They are still read and decoded with the row, which the desktop skips; the app holds a few hundred rows at a time, and Copy row and Show all columns need them |
 | 0.6.0 | Accessible row names leave hidden columns out | Ported: the row's content description leaves them out |
 | 0.6.0 | Each tab keeps its own hidden columns | Not needed: one file per window |
 | 0.5.1 | A zoom step changes only the rows and their titles and paints once | Ported: rows are rebound in place in one layout pass; measured with `dumpsys gfxinfo` |
@@ -134,6 +134,14 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
   budgets attempt lost the emulator right after boot; the rerun passed.
 - Copy row (#31): the cell dialog has Copy row, which copies the row number
   and every cell, separated by tabs, as desktop `Ctrl+C` copies a row.
+- Hide columns from desktop 0.6.0 (#32). A long press on a column title
+  keeps the four sort orders and Restore source order, and gains Hide
+  column and Show all columns, as the desktop's header menu has them. The
+  More menu gains Hide column…, a list of the shown columns, and Show all
+  columns. Hidden columns are left out of drawing, taps, sideways panning,
+  row descriptions and Copy row; the last shown column cannot be hidden; a
+  sorted column stays sorted and the status line marks it "(hidden)"; Find
+  searches whole rows and says so. Nothing is saved.
 
 0.2.0:
 
@@ -190,7 +198,7 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## In progress
 
-- 0.3.0, step 3: hiding columns.
+- 0.3.0, step 4: zoom from desktop 0.5.1.
 
 ## Remaining
 

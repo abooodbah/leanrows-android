@@ -129,6 +129,9 @@ class MainActivity : Activity() {
         var sortProgress = ""
         var sortNote: String? = null
 
+        /** What the last Hide column or Show all columns did, under the status line. */
+        var columnNote: String? = null
+
         /** The row (in the file, from 0) of the last Find match. */
         var lastHitRow = -1L
 
@@ -625,10 +628,16 @@ class MainActivity : Activity() {
             Format.LOG -> "text lines"
         }
         document.order?.let { parts += "sorted by " + describe(document, it.request) }
+        when (val hidden = document.state.columns.hiddenCount) {
+            0 -> Unit
+            1 -> parts += "1 column hidden"
+            else -> parts += "$hidden columns hidden"
+        }
         var text = parts.joinToString(" · ")
         if (table.scanned && rows == 0L) text = "The file is empty · " + parts.last()
         if (document.sorting != null) text = document.sortProgress
         document.sortNote?.let { text += "\n" + it }
+        document.columnNote?.let { text += "\n" + it }
         if (table.unterminatedQuote) text += "\nThe file ends inside a quoted field, so the last row runs to the end of the file."
         document.scanError?.let { text += "\nReading stopped early: ${it.message}" }
         status.text = text
@@ -779,6 +788,7 @@ class MainActivity : Activity() {
             layout.findFirstVisibleItemPosition().toLong().coerceAtLeast(0)
         }
         val search = document.findGeneration.incrementAndGet()
+        document.columnNote = null
         status.text = "Finding “$text”…"
         val started = SystemClock.uptimeMillis()
         document.findThread.execute {
@@ -798,9 +808,12 @@ class MainActivity : Activity() {
             Log.i(TAG, "find ${if (forward) "next" else "previous"} ${hit?.row ?: "none"} in ${SystemClock.uptimeMillis() - started} ms")
             main.post {
                 if (stale()) return@post
+                // Find reads whole rows, hidden columns included, as on the desktop.
+                val hidden = document.state.columns.hiddenCount > 0
                 if (hit == null) {
                     updateStatus(document)
-                    status.text = "No row contains “$text”." + if (exact) " Case must match." else ""
+                    status.text = "No row contains “$text”." + (if (exact) " Case must match." else "") +
+                        if (hidden) " Hidden columns are searched too." else ""
                 } else {
                     document.lastHitRow = hit.row
                     scrollTo(position)
@@ -809,7 +822,8 @@ class MainActivity : Activity() {
                         forward -> ", from the top"
                         else -> ", from the bottom"
                     }
-                    status.text = "“$text” in row ${numbers.format(hit.row + 1)}$wrapped"
+                    status.text = "“$text” in row ${numbers.format(hit.row + 1)}$wrapped" +
+                        if (hidden) " · hidden columns are searched too" else ""
                 }
             }
         }
@@ -832,11 +846,18 @@ class MainActivity : Activity() {
         sort(document, next)
     }
 
+    /**
+     * The long-press menu of a column title: the sort orders, as since 0.2.0,
+     * then Hide column and Show all columns, as on the desktop's header menu.
+     */
     private fun showColumnMenu(column: Int) {
         val document = document ?: return
         val popup = PopupMenu(menuContext(), header)
         if (column >= 0) addSortItems(popup)
         popup.menu.add(0, R.id.restore_order, 0, R.string.restore_order).isEnabled = document.order != null
+        val columns = document.state.columns
+        if (column >= 0) popup.menu.add(0, R.id.hide_column, 0, R.string.hide_column).isEnabled = columns.canHide(column)
+        popup.menu.add(0, R.id.show_all_columns, 0, R.string.show_all_columns).isEnabled = columns.hiddenCount > 0
         showPopup(popup, document, column)
     }
 
@@ -850,6 +871,9 @@ class MainActivity : Activity() {
             if (column != null) addSortItems(popup)
             popup.menu.add(0, R.id.restore_order, 0, R.string.restore_order).isEnabled = document.order != null
             popup.menu.add(0, R.id.cancel_sort, 0, R.string.cancel_sort).isEnabled = document.sorting != null
+            val columns = document.state.columns
+            popup.menu.add(0, R.id.hide_column, 0, R.string.hide_column_choose).isEnabled = columns.shown.any(columns::canHide)
+            popup.menu.add(0, R.id.show_all_columns, 0, R.string.show_all_columns).isEnabled = columns.hiddenCount > 0
         }
         showPopup(popup, document, column = -1)
     }
@@ -882,6 +906,8 @@ class MainActivity : Activity() {
                     R.id.sort_numbers_descending -> sort(document, SortRequest(target, SortMode.NUMERIC, true))
                     R.id.restore_order -> restoreOrder(document)
                     R.id.cancel_sort -> cancelSort(document)
+                    R.id.hide_column -> if (column >= 0) hideColumn(document, column) else askForColumnToHide(document)
+                    R.id.show_all_columns -> showAllColumns(document)
                 }
             }
             true
@@ -900,11 +926,59 @@ class MainActivity : Activity() {
             .show()
     }
 
-    /** "Column 3, text, ascending". */
+    /** "Column 3, text, ascending", or "Column 3 (hidden), text, ascending". */
     private fun describe(document: Document, request: SortRequest): String {
         val title = document.state.columns.titles.getOrElse(request.column) { "Column ${request.column + 1}" }
+        val marker = if (document.state.columns.isHidden(request.column)) " (hidden)" else ""
         val mode = if (request.mode == SortMode.TEXT) "text" else "numbers"
-        return "$title, $mode, " + if (request.descending) "descending" else "ascending"
+        return "$title$marker, $mode, " + if (request.descending) "descending" else "ascending"
+    }
+
+    // Hiding columns
+
+    /** More > Hide column…: a list of the shown columns. */
+    private fun askForColumnToHide(document: Document) {
+        val columns = document.state.columns
+        val shown = columns.shown
+        dialogForTest = AlertDialog.Builder(dialogContext())
+            .setTitle(R.string.hide_column)
+            .setItems(shown.map { columns.titles[it] }.toTypedArray()) { _, which -> hideColumn(document, shown[which]) }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    /**
+     * Hides [column] from the view only, as desktop LeanRows 0.6.0 does: the
+     * file is not changed, nothing is saved, and a sort by the column stays.
+     */
+    private fun hideColumn(document: Document, column: Int) {
+        if (this.document !== document) return
+        val columns = document.state.columns
+        if (!columns.hide(column)) {
+            document.columnNote = when {
+                column !in columns.titles.indices -> "Only data columns can be hidden."
+                columns.isHidden(column) -> "That column is already hidden."
+                else -> "The last shown column cannot be hidden."
+            }
+            updateStatus(document)
+            return
+        }
+        relayout(document)
+        val sortedByIt = document.order?.request?.column == column
+        document.columnNote = "Hid ${columns.titles[column]} from the view. The file is unchanged." + if (sortedByIt) " Rows stay sorted by it." else ""
+        updateStatus(document)
+    }
+
+    private fun showAllColumns(document: Document) {
+        if (this.document !== document) return
+        val columns = document.state.columns
+        document.columnNote = if (columns.showAll()) {
+            relayout(document)
+            "Showing all ${numbers.format(columns.titles.size)} columns."
+        } else {
+            "Every column is shown."
+        }
+        updateStatus(document)
     }
 
     private fun sort(document: Document, request: SortRequest) {
@@ -925,6 +999,7 @@ class MainActivity : Activity() {
         val mine = document.sortGeneration.incrementAndGet()
         document.sorting = request
         document.sortNote = null
+        document.columnNote = null
         document.sortProgress = "Sorting by ${describe(document, request)}…"
         sortCancel.visibility = View.VISIBLE
         updateStatus(document)

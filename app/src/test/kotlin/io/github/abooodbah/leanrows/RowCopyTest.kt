@@ -25,4 +25,12 @@ class RowCopyTest {
     @Test fun aPreviewRowIsItsNumberAndItsText() {
         assertEquals("1\t{\"row_id\":0}", RowCopy.text("1", listOf("{\"row_id\":0}"), 1))
     }
+
+    @Test fun hiddenColumnsAreLeftOut() {
+        assertEquals("2\tST001\t47.61", RowCopy.text("2", listOf("2026-01-01T00:00:00Z", "ST001", "Harbor Point", "47.61"), 4) { it == 0 || it == 2 })
+    }
+
+    @Test fun aHiddenColumnPastTheRowsCellsLeavesNoPlace() {
+        assertEquals("3\talpha\t", RowCopy.text("3", listOf("alpha"), 3) { it == 2 })
+    }
 }
