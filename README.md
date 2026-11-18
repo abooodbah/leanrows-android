@@ -118,6 +118,21 @@ this repository. `.gitignore` already excludes `*.jks`, `*.keystore` and
 The bundle attached to a GitHub release is signed with CI's throwaway key,
 so build the one for Play yourself as above.
 
+## Checking a download
+
+Each file on a release has a `.sha256` file next to it with its SHA-256 sum.
+Releases after 0.2.0 also carry a build provenance attestation: a record,
+signed through GitHub, that the APK or bundle was built by this repository's
+"Release files" workflow from the tagged source. To check a file with the
+GitHub CLI:
+
+```sh
+gh attestation verify LeanRows-0.3.0.apk --repo abooodbah/leanrows-android
+```
+
+This shows where the file was built. It is not code signing: the APK's
+signature is what Android checks when it installs the app.
+
 ## Store listing
 
 `store/` holds what Play Console asks for: the short and full
