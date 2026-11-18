@@ -32,7 +32,9 @@ included, and says so while it shows a result.
 
 The app has LeanMark's five themes (System, Light, Dark, Dim, Dusk), a theme
 button with a coloured dot, and a settings sheet with the theme and the
-table zoom. What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
+table zoom. What changed in each release is in [CHANGELOG.md](CHANGELOG.md),
+and the notes for each GitHub release from 0.3.0 on are in
+[docs/releases/](docs/releases/).
 
 Work in progress. Not yet on Google Play.
 

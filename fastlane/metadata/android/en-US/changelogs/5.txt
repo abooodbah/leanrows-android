@@ -1,0 +1,1 @@
+Hide columns: long-press a column title for Hide column and Show all columns, or use the More menu. The file is not changed and nothing is saved. A sorted column stays sorted when hidden, and Find still searches whole rows. Copy row in the cell dialog copies the row number and every cell. Zooming in and out keeps column widths exactly. No permissions and no network.
