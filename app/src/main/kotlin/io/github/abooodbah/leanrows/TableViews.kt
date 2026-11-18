@@ -88,6 +88,7 @@ class TableStyle(context: Context, palette: Palette = Palette.LIGHT, zoom: Doubl
         maximum = if (preview) maximumPreviewWidth else maximumWidth,
         measuredChars = if (preview) 240 else 80,
         lettered = lettered,
+        zoom = zoom,
     )
 
     /** The baseline that centres one line of [paint] in [height]. */
@@ -135,6 +136,8 @@ class RowView(context: Context, private val state: TableState) : View(context) {
 
     fun bind(index: Long, row: Row?) {
         val style = state.style
+        // After a zoom step the row is bound again in place and measures anew.
+        if (height != 0 && height != style.rowHeight) requestLayout()
         val widths = state.columns.widths
         this.index = index
         number = row?.number?.toString() ?: if (state.sortColumn >= 0) "" else (index + 1).toString()

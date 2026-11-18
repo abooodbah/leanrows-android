@@ -13,19 +13,34 @@ package io.github.abooodbah.leanrows
  * hidden column keeps its title, its width and its place in the file; it is
  * only left out of what is drawn, tapped, panned and copied. The last shown
  * column cannot be hidden. Nothing about it is saved.
+ *
+ * Zoom, as in desktop LeanRows 0.5.1: each width is kept as it was sized,
+ * and [zoomTo] works out every zoomed width from that, so zooming in and out
+ * never makes widths drift.
  */
 class Columns(
     val preview: Boolean,
     private val measure: (String) -> Float,
-    private var padding: Float,
-    private var minimum: Float,
-    private var maximum: Float,
+    padding: Float,
+    minimum: Float,
+    maximum: Float,
     /** Characters measured per cell; anything longer is at [maximum] anyway. */
     private val measuredChars: Int = 80,
     /** Title columns A, B, C as a spreadsheet does, instead of "Column 1". */
     private val lettered: Boolean = false,
+    /** The zoom that [padding], [minimum], [maximum] and [measure] are at now. */
+    private val zoom: Double = Zoom.DEFAULT,
 ) {
     private var sized = false
+
+    /** The current zoom over [zoom]: 1 until the zoom changes. */
+    private var scale = 1f
+    private val basePadding = padding
+    private val baseMinimum = minimum
+    private val baseMaximum = maximum
+    private var padding = padding
+    private var minimum = minimum
+    private var maximum = maximum
 
     var titles: List<String> = if (preview) listOf(PREVIEW) else emptyList()
         private set
@@ -33,8 +48,12 @@ class Columns(
     var widths: FloatArray = FloatArray(titles.size) { width(titles[it]) }
         private set
 
+    /** Each width as it would be at [zoom], the basis every zoomed width is worked out from. */
+    private var base: FloatArray = widths.copyOf()
+
     var rowNumberWidth = 0f
         private set
+    private var baseRowNumberWidth = 0f
 
     /** One flag per column; true when the column is hidden from the view. */
     private var hidden = BooleanArray(titles.size)
@@ -97,6 +116,9 @@ class Columns(
             widths = widths.copyOf(count).also { grown ->
                 for (index in widths.size until count) grown[index] = width(titles[index])
             }
+            base = base.copyOf(count).also { grown ->
+                for (index in base.size until count) grown[index] = widths[index] / scale
+            }
             // Columns that later rows add are shown.
             hidden = hidden.copyOf(count)
             changed = true
@@ -111,6 +133,7 @@ class Columns(
                 val wanted = width(cell)
                 if (wanted > widths[index]) {
                     widths[index] = wanted
+                    base[index] = wanted / scale
                     changed = true
                 }
             }
@@ -123,19 +146,22 @@ class Columns(
         val wanted = maxOf(width(ROW), measure(rows.toString()) + 2 * padding)
         if (wanted <= rowNumberWidth) return false
         rowNumberWidth = wanted
+        baseRowNumberWidth = wanted / scale
         return true
     }
 
     /**
-     * Zooms every width by [factor], with the limits for later rows. [measure]
-     * must already measure at the new size.
+     * Zooms every width to [level], with the limits for later rows. Each
+     * width comes from the one it was sized at, never from the last zoom.
+     * [measure] must already measure at the new level.
      */
-    fun scale(factor: Float) {
-        padding *= factor
-        minimum *= factor
-        maximum *= factor
-        for (index in widths.indices) widths[index] *= factor
-        rowNumberWidth *= factor
+    fun zoomTo(level: Double) {
+        scale = (level / zoom).toFloat()
+        padding = basePadding * scale
+        minimum = baseMinimum * scale
+        maximum = baseMaximum * scale
+        for (index in widths.indices) widths[index] = base[index] * scale
+        rowNumberWidth = baseRowNumberWidth * scale
     }
 
     /** The shown column at [x] pixels from the left edge of the first shown column, or -1. */

@@ -141,6 +141,14 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
   after the signer check and before the files are attached. The README
   says how to check a download with `gh attestation verify`. It runs for
   the first time with the 0.3.0 release files.
+- Zoom from desktop 0.5.1 (#34). Each column keeps the width it was sized
+  at and every zoomed width is worked out from it; before, each step
+  multiplied the last widths, which drifted by about 0.0001 px per trip
+  through all the levels. A zoom step binds the row views on screen again
+  in one layout pass instead of dropping them and making new ones. The
+  budgets job measured no difference in time or frames (13 zoom changes:
+  median 16 and 15 ms until the next frame, 89 frames on both, run
+  44334941454); on this emulator a step was already one frame.
 - Hide columns from desktop 0.6.0 (#32). A long press on a column title
   keeps the four sort orders and Restore source order, and gains Hide
   column and Show all columns, as the desktop's header menu has them. The
@@ -205,7 +213,7 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## In progress
 
-- 0.3.0, step 4: zoom from desktop 0.5.1.
+- 0.3.0, step 6: the version bump.
 
 ## Remaining
 
