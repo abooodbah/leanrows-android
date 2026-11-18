@@ -333,13 +333,13 @@ minutes.
 
 From the release page on GitHub, download onto the phone:
 
-- `LeanRows-0.2.0.apk`: the release build (minified), signed with a throwaway
+- `LeanRows-0.3.0.apk`: the release build (minified), signed with a throwaway
   key. Use this one for timing.
-- `LeanRows-0.2.0-debug.apk`: the debug build, for comparison only. It is slower
+- `LeanRows-0.3.0-debug.apk`: the debug build, for comparison only. It is slower
   by design.
 - `empty-app.apk`: an app with one empty screen, for the start-time
   baseline with adb (it has no launcher icon).
-- `LeanRows-0.2.0-phone-test-files.zip`: the files below. Unzip it into
+- `LeanRows-0.3.0-phone-test-files.zip`: the files below. Unzip it into
   Downloads.
 
 Open the APK from the browser's downloads or the Files app and allow the
@@ -424,6 +424,16 @@ With adb, after opening the workbook: `adb logcat -d -s LeanRows:I` shows
 
 With adb: `adb logcat -d -s LeanRows:I` shows "sorted N rows by column C in
 M ms".
+
+### Hiding columns and Copy row
+
+1. Open `weather-stations.csv`. Long-press the title "Column 3": the menu
+   has the four sort orders, Restore source order, Hide column and Show
+   all columns. Choose Hide column. The station names go, Column 4 moves
+   into their place, and the status line says "1 column hidden".
+2. Tap a cell and choose Copy row. Paste it into a note: the row number and
+   the cells, with tabs between them and no station name.
+3. More (⋮) > Show all columns brings Column 3 back.
 
 ### Themes
 

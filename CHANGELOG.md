@@ -3,6 +3,69 @@
 What changed in each release of LeanRows for Android. The notes for each
 GitHub release are the entry below, and the tag message has the same text.
 
+## 0.3.0 - 2026-11-18
+
+LeanRows for Android 0.3.0 hides columns from the view, as desktop LeanRows
+0.6.0 does, copies whole rows, and zooms without changing column widths, as
+desktop 0.5.1 does.
+
+Not on Google Play yet. This build is for testing on a phone.
+
+### Hide columns
+
+- Long-press a column title and choose Hide column. The same menu still has
+  the text and numeric sort orders, and Show all columns brings every hidden
+  column back.
+- The More menu (⋮) has Hide column…, with a list of the shown columns, and
+  Show all columns.
+- Hiding a column changes the view only. The file is not changed and nothing
+  is saved. Another file or another sheet shows every column.
+- The last shown column cannot be hidden, so JSON Lines and log files, which
+  show one Preview column, have nothing to hide.
+- Hidden columns are left out of sideways panning, of Copy row and of what
+  TalkBack reads for a row.
+- Sort by a column and then hide it, and the rows stay in that order. The
+  status line marks the sorted column as hidden and counts the hidden
+  columns.
+- Find still searches whole rows, hidden columns included, and says so while
+  it shows a result.
+- CSV, TSV and Excel sheets all work. Sheet columns keep their letters.
+
+### Copy row
+
+- Tap a cell. Besides Copy, the dialog has Copy row: the row number and every
+  cell, separated by tabs, as desktop LeanRows copies a row.
+
+### Zoom
+
+- Column widths come back exactly when you zoom in and out.
+- A zoom step redraws the rows on screen in place instead of making them
+  again.
+
+### Release files
+
+- The release files carry a build provenance attestation. Check a download
+  with `gh attestation verify <file> --repo abooodbah/leanrows-android`. This
+  shows the file was built by this repository's release workflow from the
+  tag. It is not code signing.
+
+### Measured
+
+On a GitHub Actions API 34 emulator (x86_64, no GPU), 0.2.0 and 0.3.0
+release builds measured the same way in one run:
+
+MEASURED_TABLE
+
+### Known gaps
+
+- The fast scroller is not drawn in the theme's colours.
+- Hidden cells are still read with their row; they are only not drawn.
+- Sorting does not work on Excel sheets yet; the app says so.
+- Start time and jank were measured on an emulator without a GPU, not on a
+  phone.
+
+Still no permissions and no network.
+
 ## 0.2.0 - 2026-11-05
 
 LeanRows for Android 0.2.0 sorts a whole file by any column, as desktop
