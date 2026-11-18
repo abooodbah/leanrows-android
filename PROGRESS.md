@@ -141,6 +141,9 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
   after the signer check and before the files are attached. The README
   says how to check a download with `gh attestation verify`. It runs for
   the first time with the 0.3.0 release files.
+- A manual CI run can measure against any branch, tag or commit (#35), so
+  the version bump compares 0.3.0 with the v0.2.0 tag on one emulator.
+  Checked with base v0.2.0 in run 44337327373.
 - Zoom from desktop 0.5.1 (#34). Each column keeps the width it was sized
   at and every zoomed width is worked out from it; before, each step
   multiplied the last widths, which drifted by about 0.0001 px per trip
