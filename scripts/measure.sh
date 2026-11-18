@@ -448,8 +448,10 @@ for label in "${LABELS[@]}"; do
 done
 
 # The theme button and the table zoom, with the large file open. A build
-# without them shows NA. Each ends where it started (System, 100%).
-declare -A THEME_TAP=() ZOOM_STEP=()
+# without them shows NA. Each ends where it started (System, 100%). After
+# the first zoom step, a run of 14 steps (110% up to 300% and back down to
+# 110%) is measured with dumpsys gfxinfo, half a second apart.
+declare -A THEME_TAP=() ZOOM_STEP=() ZOOM_RUN_MS=() ZOOM_FRAMES=() ZOOM_JANK=() ZOOM_P90=()
 for label in "${LABELS[@]}"; do
   install "$label"
   open_large
@@ -475,11 +477,25 @@ for label in "${LABELS[@]}"; do
       adb shell input tap $zoom_in
       ZOOM_STEP[$label]=$(wait_log "zoom 110% applied" 20 | grep -o "in [0-9]* ms" | awk '{ print $2 }' || true)
       sleep 1
+      zoom_out=$(centre_of "$dump" zoom_out)
+      if [ -n "$zoom_out" ]; then
+        adb logcat -c
+        adb shell dumpsys gfxinfo "$PKG" reset >/dev/null
+        for _ in 1 2 3 4 5 6 7; do adb shell input tap $zoom_in; sleep 0.5; done
+        for _ in 1 2 3 4 5 6 7; do adb shell input tap $zoom_out; sleep 0.5; done
+        sleep 1
+        gfx=$(adb shell dumpsys gfxinfo "$PKG" | tr -d '\r')
+        ZOOM_RUN_MS[$label]=$(adb logcat -d -s LeanRows:I | grep -o "zoom [0-9]*% applied in [0-9]* ms" | awk '{ print $(NF - 1) }' | median)
+        ZOOM_FRAMES[$label]=$(sed -n 's/^Total frames rendered: *//p' <<<"$gfx" | head -n 1)
+        ZOOM_JANK[$label]=$(sed -n 's/^Janky frames: *//p' <<<"$gfx" | head -n 1)
+        ZOOM_P90[$label]=$(sed -n 's/^90th percentile: *//p' <<<"$gfx" | head -n 1)
+      fi
       if [ -n "$zoom_reset" ]; then adb shell input tap $zoom_reset; fi
     fi
     adb shell input keyevent BACK
   fi
   log "$label theme button to Dark ${THEME_TAP[$label]:-NA} ms, zoom to 110% ${ZOOM_STEP[$label]:-NA} ms"
+  log "$label 14 zoom steps: median ${ZOOM_RUN_MS[$label]:-NA} ms, frames ${ZOOM_FRAMES[$label]:-NA}, janky ${ZOOM_JANK[$label]:-NA}, p90 ${ZOOM_P90[$label]:-NA}"
 done
 
 # The workbook: time to write the sheet as CSV, time until its rows are drawn
@@ -581,13 +597,21 @@ row() {
     sort_peak+=("${SORT_PEAK[$label]:-NA}")
     sort_after+=("${SORT_AFTER[$label]:-NA}")
   done
-  theme_tap=(); zoom_step=()
+  theme_tap=(); zoom_step=(); zoom_run=(); zoom_frames=(); zoom_jank=(); zoom_p90=()
   for label in "${LABELS[@]}"; do
     theme_tap+=("${THEME_TAP[$label]:-NA}")
     zoom_step+=("${ZOOM_STEP[$label]:-NA}")
+    zoom_run+=("${ZOOM_RUN_MS[$label]:-NA}")
+    zoom_frames+=("${ZOOM_FRAMES[$label]:-NA}")
+    zoom_jank+=("${ZOOM_JANK[$label]:-NA}")
+    zoom_p90+=("${ZOOM_P90[$label]:-NA}")
   done
   row "Theme button, Light to Dark, until the next frame (ms)" "${theme_tap[@]}"
   row "Zoom 100% to 110%, until the next frame (ms)" "${zoom_step[@]}"
+  row "14 zoom steps, 110% to 300% and back: median step until the next frame (ms)" "${zoom_run[@]}"
+  row "Frames drawn over the 14 zoom steps" "${zoom_frames[@]}"
+  row "Janky frames over the 14 zoom steps (software GPU, not a budget check)" "${zoom_jank[@]}"
+  row "90th percentile frame time over the 14 zoom steps (software GPU)" "${zoom_p90[@]}"
   row "Sorting 1,000,001 shuffled rows by the first column, text (ms)" "${sort_ms[@]}"
   row "Peak app PSS while sorting, sampled each second (KB)" "${sort_peak[@]}"
   row "App PSS after the sort (KB)" "${sort_after[@]}"
