@@ -61,4 +61,73 @@ class ColumnsTest {
         assertEquals(1, columns.columnAt(95f))
         assertEquals(-1, columns.columnAt(500f))
     }
+
+    // Hiding columns, as desktop LeanRows 0.6.0 does: the view changes, the titles do not.
+
+    private fun threeColumns() = columns().apply { fit(listOf(row("a", "a much longer value", "ccc"))) }
+
+    @Test fun aHiddenColumnLeavesTheViewButKeepsItsTitle() {
+        val columns = threeColumns()
+        val total = columns.totalWidth
+        assertTrue(columns.hide(1))
+        assertTrue(columns.isHidden(1))
+        assertEquals(listOf("Column 1", "Column 2", "Column 3"), columns.titles)
+        assertEquals(listOf(0, 2), columns.shown)
+        assertEquals(1, columns.hiddenCount)
+        assertEquals(total - 200f, columns.totalWidth, 0f)
+        // Column 3 now starts where Column 2 did.
+        assertEquals(90f, columns.left(2), 0f)
+        assertEquals(2, columns.columnAt(95f))
+        assertEquals(-1, columns.columnAt(185f))
+    }
+
+    @Test fun showAllBringsEveryColumnBackAtItsWidth() {
+        val columns = threeColumns()
+        val widths = columns.widths.copyOf()
+        columns.hide(0)
+        columns.hide(2)
+        assertEquals(2, columns.hiddenCount)
+        assertTrue(columns.showAll())
+        assertEquals(0, columns.hiddenCount)
+        assertEquals(listOf(0, 1, 2), columns.shown)
+        assertArrayEquals(widths, columns.widths, 0f)
+        assertEquals(1, columns.columnAt(95f))
+        assertFalse("nothing to show", columns.showAll())
+    }
+
+    @Test fun theLastShownColumnCannotBeHidden() {
+        val columns = threeColumns()
+        assertTrue(columns.hide(0))
+        assertTrue(columns.hide(1))
+        assertFalse(columns.canHide(2))
+        assertFalse(columns.hide(2))
+        assertEquals(listOf(2), columns.shown)
+        assertFalse("already hidden", columns.hide(0))
+        assertFalse("not a column", columns.hide(3))
+        assertFalse("not a column", columns.hide(-1))
+    }
+
+    @Test fun aPreviewColumnHasNothingToHide() {
+        val columns = columns(preview = true)
+        columns.fit(listOf(row("timestamp_ms=1 level=INFO")))
+        assertFalse(columns.canHide(0))
+        assertFalse(columns.hide(0))
+    }
+
+    @Test fun columnsThatLaterRowsAddAreShown() {
+        val columns = columns()
+        columns.fit(listOf(row("a", "b")))
+        columns.hide(0)
+        columns.fit(listOf(row("a", "b", "a third column")))
+        assertEquals(listOf(1, 2), columns.shown)
+        assertTrue(columns.isHidden(0))
+    }
+
+    @Test fun zoomScalesHiddenColumnsToo() {
+        val columns = threeColumns()
+        columns.hide(1)
+        columns.scale(2f)
+        columns.showAll()
+        assertArrayEquals(floatArrayOf(180f, 400f, 180f), columns.widths, 0f)
+    }
 }
