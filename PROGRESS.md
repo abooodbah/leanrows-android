@@ -2,41 +2,80 @@
 
 Updated with every merge. The next session starts here.
 
-## Plan for 0.2.0
+## Plan for 0.3.0
 
-Work in this order, one pull request per change, each merged when CI is
-green. Tests first: the failing tests go in their own commit before the
-change.
+Started 2026-11-18. The app is at 0.2.0 (2026-11-06). Work in this order,
+one pull request per change, each merged when CI is green. Tests first: the
+failing tests go in their own commit before the change. The budgets job
+measures every pull request against main on the same emulator.
 
-1. Efficiency review. Extend the budgets job (`scripts/measure.sh`) so it
-   also measures Find, a system theme switch, a rotation and allocations
-   while scrolling, on release builds. Write the findings into the table
-   below. Fix the clear wins, one per pull request, with before and after
-   numbers. List the rest for the maintainer.
-2. Column sorting, ported from desktop LeanRows 0.4.0 (see below).
-   - Sort engine first (JVM tests): text and numeric order with the
-     desktop's rules, ties in source order, bounded memory, temporary files
-     in the app's cache. Unlike desktop 0.4.0, the file is read once from
-     start to end (no read per row) and runs are joined by a multi-way
-     merge (not two at a time). Measured on 10 million rows.
-   - Then the screen: tap a column title to sort, tap again to reverse,
-     long-press it for text or numeric order, tap Row to restore the
-     source order, Cancel while it runs. Row numbers, Find and Go to row
-     keep the file's own numbers. A free-space check before a large sort.
-     An .xlsx sheet is not sorted; the app says so. Emulator tests first.
-3. The five themes of LeanMark 0.6.0 (System, Light, Dark, Dim, Dusk) with
-   its exact colours, the theme button with its coloured dot and a tooltip
-   that names the theme, and a settings button that opens a sheet with
-   theme and zoom. Zoom enlarges the table only. Both are remembered.
-4. Version 0.2.0: version bump pull request, annotated tag v0.2.0, a GitHub
-   pre-release with plain notes, the "Release files" workflow for the APK,
-   AAB and .sha256 files, and the "Play bundle" workflow. Nothing is
-   uploaded to Google Play.
+1. This plan.
+2. Copy row: the cell dialog gets a Copy row button that copies the row
+   number and every cell, separated by tabs, as desktop `Ctrl+C` copies a
+   row. The app has no row copy yet, and desktop 0.6.0 leaves hidden columns
+   out of copies, so this comes first.
+3. Hide columns, from desktop 0.6.0 (see below). Long press on a column
+   title keeps its sort orders and gains Hide column and Show all columns.
+   The More menu gets Hide column, which lists the shown columns, and Show
+   all columns.
+4. Zoom, from desktop 0.5.1: each column keeps the width it was sized at,
+   so zooming in and out does not make widths drift, and a zoom step
+   rebinds the rows on screen in one layout pass instead of dropping and
+   rebuilding every row view. The budgets job measures a run of zoom steps
+   with `dumpsys gfxinfo` on main and the branch.
+5. Build provenance attestations in `release.yml`, as the desktop repos got
+   on 2026-11-18, and a README line on `gh attestation verify`.
+6. Version 0.3.0: the version bump pull request. This session cannot push
+   tags or create releases, so the tag, the release files and the Play
+   bundle run are left for the maintainer.
 
-## Desktop features the app lacks
+The two open items the 0.2.0 efficiency review found are already fixed and
+merged in 0.2.0: Find previous (#19) and the system light or dark switch
+(#20). This plan's own budgets run measures both again on main, and the
+numbers go in "Measured numbers" below. The review's other rows need no
+fix, except a larger read chunk for indexing, which it called a small gain
+and left for the maintainer; it is not in this plan.
 
-Desktop releases after 2026-10-29: only 0.4.0 (2026-11-02), column
-sorting. 0.3.0 (2026-10-29, .xlsx) is already in the app since 0.1.1.
+## Desktop changes since 0.2.0
+
+Desktop releases after 2026-11-06, from the desktop `CHANGELOG.md` and
+`docs/releases/`: 0.5.1 (2026-11-06), 0.6.0 (2026-11-14) and 0.6.1
+(2026-11-15), and on 2026-11-18 build provenance attestations for the
+release files. 0.5.0 (2026-11-05) came before; its themes, settings panel
+and zoom match what Android 0.2.0 took from LeanMark 0.6.0, and its faster
+sort (many runs merged at once, the reverse map written in sequence) was
+already how the Android sort engine works.
+
+| Desktop | Change | On Android |
+| --- | --- | --- |
+| 0.6.0 | Hide column from the header's right-click menu; Show all columns | Ported: long press on a column title (which keeps the sort orders) gains Hide column and Show all columns |
+| 0.6.0 | More menu: Hide column submenu of the shown columns, Show all columns | Ported: More > Hide column… opens a list of the shown columns; More > Show all columns |
+| 0.6.0 | The file is not changed; nothing is saved; a reload, another file or another sheet shows every column | Ported |
+| 0.6.0 | Hidden columns are left out of `Ctrl+C` copies | Ported with Copy row in the cell dialog (step 2), which leaves hidden columns out |
+| 0.6.0 | Hidden columns are left out of sideways scrolling | Ported: the table pans over the shown columns only |
+| 0.6.0 | The last shown column cannot be hidden, so one-column Preview views have nothing to hide | Ported |
+| 0.6.0 | A sorted column that is hidden keeps its order; the status marks it as hidden | Ported |
+| 0.6.0 | Find still searches whole rows and the status says so while a result is shown | Ported |
+| 0.6.0 | CSV, TSV and `.xlsx` sheets; sheet columns keep their letters | Ported |
+| 0.6.0 | Rows on screen skip decoding hidden fields | Ported: hidden cells are not cut to width or drawn; they are still split from the record, as on the desktop |
+| 0.6.0 | Accessible row names leave hidden columns out | Ported: the row's content description leaves them out |
+| 0.6.0 | Each tab keeps its own hidden columns | Not needed: one file per window |
+| 0.5.1 | A zoom step changes only the rows and their titles and paints once | Ported: rows are rebound in place in one layout pass; measured with `dumpsys gfxinfo` |
+| 0.5.1 | Ctrl+wheel notches already queued are one zoom change | Not needed: zoom is a button in the settings sheet, one step per tap |
+| 0.5.1 | Column widths do not drift when zooming in and out; a width set by hand becomes the basis | Ported for drift. Widths cannot be set by hand on Android |
+| 0.5.1 | A file opened while zoomed gets columns sized for that zoom | Already so since 0.2.0; a test now checks it |
+| 0.5.1 | Thin scroll bars in the theme's colours | Skipped: the app has RecyclerView's thin fast scroller; recolouring it per theme needs RecyclerView internals. Listed as a known gap |
+| 0.5.1 | The settings shortcut list wraps | Not needed: no shortcut list on a phone |
+| 0.6.1 | The Microsoft Store lists the app as LeanRows CSV Viewer | Not ported: the Android app name, package id and launcher label stay as they are; the maintainer changes the Play listing |
+| 2026-11-18 | Build provenance attestation for release files | Ported to `release.yml` (step 5) |
+
+## 0.2.0 plan and desktop features (done)
+
+The 0.2.0 plan was: an efficiency review, column sorting from desktop
+0.4.0, LeanMark 0.6.0's five themes with a settings sheet, and the release.
+All of it is merged; the details are under "Done" below.
+
+Desktop 0.4.0 features in 0.2.0:
 
 | Desktop 0.4.0 feature | On Android |
 | --- | --- |
@@ -135,8 +174,7 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
 
 ## In progress
 
-- Release v0.2.0: the version bump is merged (#21); the tag, the
-  pre-release and the release files are done by the maintainer.
+- 0.3.0, step 1: this plan.
 
 ## Remaining
 
