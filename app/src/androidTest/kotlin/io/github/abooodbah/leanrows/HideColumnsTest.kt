@@ -43,7 +43,7 @@ class HideColumnsTest {
             val columns = state.columns
             val header = activity.findViewById<View>(R.id.header)
             val left = columns.left(column)
-            if (left - state.offsetX + columns.widths[column] > state.viewportWidth - columns.rowNumberWidth) {
+            if (left < state.offsetX || left - state.offsetX + columns.widths[column] > state.viewportWidth - columns.rowNumberWidth) {
                 state.offsetX = left
                 state.clampOffset()
                 header.invalidate()
@@ -107,6 +107,12 @@ class HideColumnsTest {
 
     private fun Viewer.status() = onActivity { it.statusForTest }
 
+    /** The status line says [note] on a line of its own, under the file's line. */
+    private fun Viewer.assertNote(note: String) {
+        val lines = status().lines()
+        assertTrue(status(), lines.size > 1 && note in lines.drop(1))
+    }
+
     private fun Viewer.waitForSort() = waitFor("the sort to finish", 60_000) { it.sortedForTest != null && !it.sortingForTest }
 
     /** "Row N" of the row shown at [position]. */
@@ -127,7 +133,8 @@ class HideColumnsTest {
         assertFalse("nothing is hidden yet", viewer.item(R.id.show_all_columns).isEnabled)
         viewer.menu(R.id.hide_column)
         viewer.waitFor("Column 3 hidden") { it.stateForTest!!.columns.isHidden(2) }
-        assertEquals("Hid Column 3 from the view. The file is unchanged.", viewer.status())
+        viewer.assertNote("Hid Column 3 from the view. The file is unchanged.")
+        assertEquals("1,441 rows · CSV · 1 column hidden", viewer.status().lines().first())
         assertEquals((1..10).map { "Column $it" }, viewer.onActivity { it.stateForTest!!.columns.titles })
         assertEquals((1..10).filter { it != 3 }.map { "Column $it" }, viewer.shownTitles())
         // The row's description, which TalkBack reads, leaves the hidden cell out.
@@ -143,7 +150,8 @@ class HideColumnsTest {
         viewer.longPressHeader(0)
         viewer.menu(R.id.show_all_columns)
         viewer.waitFor("every column") { it.stateForTest!!.columns.hiddenCount == 0 }
-        assertEquals("Showing all 10 columns.", viewer.status())
+        viewer.assertNote("Showing all 10 columns.")
+        assertFalse(viewer.status(), viewer.status().contains("hidden"))
         assertEquals((1..10).map { "Column $it" }, viewer.shownTitles())
     }
 
@@ -193,7 +201,7 @@ class HideColumnsTest {
         assertEquals((1..10).map { "Column $it" }, viewer.dialogItems())
         viewer.chooseDialogItem(0)
         viewer.waitFor("Column 1 hidden") { it.stateForTest!!.columns.isHidden(0) }
-        assertEquals("Hid Column 1 from the view. The file is unchanged.", viewer.status())
+        viewer.assertNote("Hid Column 1 from the view. The file is unchanged.")
 
         // The list offers only the columns still shown.
         viewer.openMore()
@@ -206,7 +214,7 @@ class HideColumnsTest {
         viewer.openMore()
         viewer.menu(R.id.show_all_columns)
         viewer.waitFor("every column") { it.stateForTest!!.columns.hiddenCount == 0 }
-        assertEquals("Showing all 10 columns.", viewer.status())
+        viewer.assertNote("Showing all 10 columns.")
         assertEquals("Row 2: $weatherRow2", viewer.rowText(1))
     }
 
@@ -218,7 +226,8 @@ class HideColumnsTest {
         val first = viewer.numberAt(0)
         val second = viewer.numberAt(1)
         viewer.hide(2)
-        assertEquals("Hid Column 3 from the view. The file is unchanged. Rows stay sorted by it.", viewer.status())
+        viewer.assertNote("Hid Column 3 from the view. The file is unchanged. Rows stay sorted by it.")
+        assertTrue(viewer.status(), viewer.status().lines().first().endsWith("sorted by Column 3 (hidden), text, ascending · 1 column hidden"))
         assertEquals(first, viewer.numberAt(0))
         assertEquals(second, viewer.numberAt(1))
         assertTrue(viewer.onActivity { it.sortedForTest != null })
@@ -333,7 +342,7 @@ class HideColumnsTest {
         viewer.waitForScan()
         viewer.rowText(0)
         viewer.hide(1)
-        assertEquals("Hid B from the view. The file is unchanged.", viewer.status())
+        viewer.assertNote("Hid B from the view. The file is unchanged.")
         viewer.waitFor("the rows drawn again") { !(it.listForTest.findViewHolderForAdapterPosition(1)?.itemView?.contentDescription ?: "").contains("12.5") }
         assertEquals("Row 2: Harbor Point, 2026-01-01, 2026-01-01 06:30:15, 06:30:00, TRUE, 0.125, 1234.5, First line\\nsecond line", viewer.rowText(1))
         assertEquals(listOf("A") + ('C'..'L').map { it.toString() }, viewer.shownTitles())

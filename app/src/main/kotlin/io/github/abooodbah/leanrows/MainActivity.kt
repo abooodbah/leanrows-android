@@ -129,6 +129,9 @@ class MainActivity : Activity() {
         var sortProgress = ""
         var sortNote: String? = null
 
+        /** What the last Hide column or Show all columns did, under the status line. */
+        var columnNote: String? = null
+
         /** The row (in the file, from 0) of the last Find match. */
         var lastHitRow = -1L
 
@@ -634,6 +637,7 @@ class MainActivity : Activity() {
         if (table.scanned && rows == 0L) text = "The file is empty · " + parts.last()
         if (document.sorting != null) text = document.sortProgress
         document.sortNote?.let { text += "\n" + it }
+        document.columnNote?.let { text += "\n" + it }
         if (table.unterminatedQuote) text += "\nThe file ends inside a quoted field, so the last row runs to the end of the file."
         document.scanError?.let { text += "\nReading stopped early: ${it.message}" }
         status.text = text
@@ -784,6 +788,7 @@ class MainActivity : Activity() {
             layout.findFirstVisibleItemPosition().toLong().coerceAtLeast(0)
         }
         val search = document.findGeneration.incrementAndGet()
+        document.columnNote = null
         status.text = "Finding “$text”…"
         val started = SystemClock.uptimeMillis()
         document.findThread.execute {
@@ -950,27 +955,30 @@ class MainActivity : Activity() {
         if (this.document !== document) return
         val columns = document.state.columns
         if (!columns.hide(column)) {
-            status.text = when {
+            document.columnNote = when {
                 column !in columns.titles.indices -> "Only data columns can be hidden."
                 columns.isHidden(column) -> "That column is already hidden."
                 else -> "The last shown column cannot be hidden."
             }
+            updateStatus(document)
             return
         }
         relayout(document)
         val sortedByIt = document.order?.request?.column == column
-        status.text = "Hid ${columns.titles[column]} from the view. The file is unchanged." + if (sortedByIt) " Rows stay sorted by it." else ""
+        document.columnNote = "Hid ${columns.titles[column]} from the view. The file is unchanged." + if (sortedByIt) " Rows stay sorted by it." else ""
+        updateStatus(document)
     }
 
     private fun showAllColumns(document: Document) {
         if (this.document !== document) return
         val columns = document.state.columns
-        if (!columns.showAll()) {
-            status.text = "Every column is shown."
-            return
+        document.columnNote = if (columns.showAll()) {
+            relayout(document)
+            "Showing all ${numbers.format(columns.titles.size)} columns."
+        } else {
+            "Every column is shown."
         }
-        relayout(document)
-        status.text = "Showing all ${numbers.format(columns.titles.size)} columns."
+        updateStatus(document)
     }
 
     private fun sort(document: Document, request: SortRequest) {
@@ -991,6 +999,7 @@ class MainActivity : Activity() {
         val mine = document.sortGeneration.incrementAndGet()
         document.sorting = request
         document.sortNote = null
+        document.columnNote = null
         document.sortProgress = "Sorting by ${describe(document, request)}…"
         sortCancel.visibility = View.VISIBLE
         updateStatus(document)
