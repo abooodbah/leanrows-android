@@ -182,6 +182,7 @@ class MainActivity : Activity() {
         override fun getItemCount(): Int = minOf(document.shownRows, Int.MAX_VALUE.toLong()).toInt()
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
+            rowViewsMade++
             val row = RowView(parent.context, document.state)
             // The height follows the zoom: RowView measures itself.
             row.layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -1194,7 +1195,12 @@ class MainActivity : Activity() {
         },
     )
 
-    /** Zooms the table only, keeping the first row on screen in place. */
+    /**
+     * Zooms the table only, keeping the first row on screen in place. As in
+     * desktop LeanRows 0.5.1 only the rows and their titles change: the row
+     * views on screen are bound again in place, in one layout pass, and each
+     * width comes from the one it was sized at.
+     */
     private fun setZoom(level: Double) {
         if (level == zoom) return
         val started = SystemClock.uptimeMillis()
@@ -1204,12 +1210,10 @@ class MainActivity : Activity() {
         style.apply(palette, zoom)
         val first = layout.findFirstVisibleItemPosition()
         document?.let { document ->
-            document.state.columns.scale(factor)
+            document.state.columns.zoomTo(level)
             document.state.offsetX *= factor
             document.state.clampOffset()
-            list.recycledViewPool.clear()
-            @Suppress("NotifyDataSetChanged") // Every row changes size.
-            document.adapter.notifyDataSetChanged()
+            document.adapter.notifyItemRangeChanged(0, document.adapter.itemCount)
             if (first >= 0) layout.scrollToPositionWithOffset(first, 0)
         }
         header.requestLayout()
@@ -1316,6 +1320,10 @@ class MainActivity : Activity() {
     internal val paletteForTest: Palette get() = palette
     internal val themeForTest: Theme get() = chosenTheme
     internal val zoomForTest: Double get() = zoom
+
+    /** Row views made since the activity started; a zoom step should reuse them. */
+    private var rowViewsMade = 0
+    internal val rowViewsMadeForTest: Int get() = rowViewsMade
     internal val dotForTest: Pair<Int, Int> get() = Palette.dot(chosenTheme)
     internal val settingsForTest: Dialog? get() = settingsSheet
 

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Widths are scaled from the last zoom, as in 0.2.0",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Columns.kt",
+    "old": "        scale = (level / zoom).toFloat()\n        padding = basePadding * scale\n        minimum = baseMinimum * scale\n        maximum = baseMaximum * scale\n        for (index in widths.indices) widths[index] = base[index] * scale\n        rowNumberWidth = baseRowNumberWidth * scale",
+    "new": "        val factor = (level / zoom).toFloat() / scale\n        scale = (level / zoom).toFloat()\n        padding *= factor\n        minimum *= factor\n        maximum *= factor\n        for (index in widths.indices) widths[index] *= factor\n        rowNumberWidth *= factor"
+  },
+  {
+    "name": "The row number column is scaled from the last zoom",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Columns.kt",
+    "old": "        rowNumberWidth = baseRowNumberWidth * scale",
+    "new": "        rowNumberWidth *= scale"
+  },
+  {
+    "name": "A column added while zoomed takes its zoomed width as its basis",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Columns.kt",
+    "old": "for (index in base.size until count) grown[index] = widths[index] / scale",
+    "new": "for (index in base.size until count) grown[index] = widths[index]"
+  },
+  {
+    "name": "A zoom step drops the row views and makes new ones, as in 0.2.0",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "            document.adapter.notifyItemRangeChanged(0, document.adapter.itemCount)\n            if (first >= 0) layout.scrollToPositionWithOffset(first, 0)",
+    "new": "            list.recycledViewPool.clear()\n            document.adapter.notifyDataSetChanged()\n            if (first >= 0) layout.scrollToPositionWithOffset(first, 0)"
+  },
+  {
+    "name": "A row bound again keeps its old height",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/TableViews.kt",
+    "old": "        if (height != 0 && height != style.rowHeight) requestLayout()\n",
+    "new": "\n"
+  },
+  {
+    "name": "Columns made while zoomed think they are at 100%",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/TableViews.kt",
+    "old": "        lettered = lettered,\n        zoom = zoom,\n",
+    "new": "        lettered = lettered,\n"
+  }
+]
