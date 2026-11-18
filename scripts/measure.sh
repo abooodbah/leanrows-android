@@ -449,8 +449,9 @@ done
 
 # The theme button and the table zoom, with the large file open. A build
 # without them shows NA. Each ends where it started (System, 100%). After
-# the first zoom step, a run of 14 steps (110% up to 300% and back down to
-# 110%) is measured with dumpsys gfxinfo, half a second apart.
+# the first zoom step, 14 taps half a second apart (seven on zoom in from
+# 110%, the last of them at 300% already, then seven on zoom out, down to
+# 100%) are measured with dumpsys gfxinfo: 13 zoom changes.
 declare -A THEME_TAP=() ZOOM_STEP=() ZOOM_RUN_MS=() ZOOM_FRAMES=() ZOOM_JANK=() ZOOM_P90=()
 for label in "${LABELS[@]}"; do
   install "$label"
@@ -504,7 +505,7 @@ for label in "${LABELS[@]}"; do
   fi
   log "$label theme button to Dark ${THEME_TAP[$label]:-NA} ms, zoom to 110% ${ZOOM_STEP[$label]:-NA} ms"
   log "$label zoom lines: $(adb logcat -d -s LeanRows:I | grep -o "zoom [0-9]*% applied in [0-9]* ms" | tr '\n' ';' || true)"
-  log "$label 14 zoom steps: median ${ZOOM_RUN_MS[$label]:-NA} ms, frames ${ZOOM_FRAMES[$label]:-NA}, janky ${ZOOM_JANK[$label]:-NA}, p90 ${ZOOM_P90[$label]:-NA}"
+  log "$label 13 zoom changes: median ${ZOOM_RUN_MS[$label]:-NA} ms, frames ${ZOOM_FRAMES[$label]:-NA}, janky ${ZOOM_JANK[$label]:-NA}, p90 ${ZOOM_P90[$label]:-NA}"
 done
 
 # The workbook: time to write the sheet as CSV, time until its rows are drawn
@@ -617,10 +618,10 @@ row() {
   done
   row "Theme button, Light to Dark, until the next frame (ms)" "${theme_tap[@]}"
   row "Zoom 100% to 110%, until the next frame (ms)" "${zoom_step[@]}"
-  row "14 zoom steps, 110% to 300% and back: median step until the next frame (ms)" "${zoom_run[@]}"
-  row "Frames drawn over the 14 zoom steps" "${zoom_frames[@]}"
-  row "Janky frames over the 14 zoom steps (software GPU, not a budget check)" "${zoom_jank[@]}"
-  row "90th percentile frame time over the 14 zoom steps (software GPU)" "${zoom_p90[@]}"
+  row "13 zoom changes, 110% to 300% and down to 100%: median until the next frame (ms)" "${zoom_run[@]}"
+  row "Frames drawn over the 13 zoom changes" "${zoom_frames[@]}"
+  row "Janky frames over the 13 zoom changes (software GPU, not a budget check)" "${zoom_jank[@]}"
+  row "90th percentile frame time over the 13 zoom changes (software GPU)" "${zoom_p90[@]}"
   row "Sorting 1,000,001 shuffled rows by the first column, text (ms)" "${sort_ms[@]}"
   row "Peak app PSS while sorting, sampled each second (KB)" "${sort_peak[@]}"
   row "App PSS after the sort (KB)" "${sort_after[@]}"
