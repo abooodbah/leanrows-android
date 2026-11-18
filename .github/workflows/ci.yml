@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      base:
+        description: Branch, tag or commit the budgets job compares with
+        required: false
+        default: main
 
 permissions:
   contents: read
@@ -217,8 +222,9 @@ jobs:
   measure:
     name: Budgets on the emulator (API 34)
     # Compares this branch with the branch it merges into, on one emulator.
-    # A manual start compares the chosen branch with main, so the numbers can
-    # go into a pull request's description when it is opened.
+    # A manual start compares the chosen branch with main, or with the ref
+    # given as "base" (a release tag, for example), so the numbers can go into
+    # a pull request's description when it is opened.
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -253,8 +259,18 @@ jobs:
           cp baseline/build/outputs/apk/release/baseline-release.apk measure/empty.apk
 
       - name: Build the base branch
+        env:
+          PULL_REQUEST_BASE: ${{ github.base_ref }}
+          CHOSEN_BASE: ${{ inputs.base }}
         run: |
-          git worktree add ../base "origin/${{ github.base_ref || 'main' }}"
+          if [ -n "$PULL_REQUEST_BASE" ]; then
+            base="origin/$PULL_REQUEST_BASE"
+          else
+            base="${CHOSEN_BASE:-main}"
+            if git rev-parse -q --verify "origin/$base^{commit}" >/dev/null; then base="origin/$base"; fi
+          fi
+          echo "Base: $base ($(git rev-parse --short "$base^{commit}"))"
+          git worktree add ../base "$base"
           if (cd ../base && ./gradlew --no-daemon -PdebugSignRelease assembleRelease); then
             cp ../base/app/build/outputs/apk/release/app-release.apk measure/base.apk
           else
