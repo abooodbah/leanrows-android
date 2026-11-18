@@ -144,10 +144,11 @@ class RowView(context: Context, private val state: TableState) : View(context) {
         cells = Array(minOf(raw.size, widths.size)) { column ->
             if (columns.isHidden(column)) "" else TextUtils.ellipsize(raw[column], style.text, widths[column] - 2 * style.padding, TextUtils.TruncateAt.END)
         }
-        contentDescription = if (row == null) {
-            "Row $number"
-        } else {
-            "Row $number: " + raw.filterIndexed { column, _ -> !columns.isHidden(column) }.joinToString(", ")
+        contentDescription = when {
+            row == null -> "Row $number"
+            // No filtered copy of the cells while every column is shown.
+            columns.hiddenCount == 0 -> "Row $number: " + raw.joinToString(", ")
+            else -> "Row $number: " + raw.filterIndexed { column, _ -> !columns.isHidden(column) }.joinToString(", ")
         }
         invalidate()
     }
