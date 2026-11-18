@@ -134,6 +134,13 @@ Zoom did not exist before 0.2.0; it is measured with the settings sheet.
   budgets attempt lost the emulator right after boot; the rerun passed.
 - Copy row (#31): the cell dialog has Copy row, which copies the row number
   and every cell, separated by tabs, as desktop `Ctrl+C` copies a row.
+- Build provenance attestations (#33): `release.yml` gives the release job
+  `id-token: write` and `attestations: write` and runs
+  `actions/attest-build-provenance` v4.2.2, pinned to commit
+  4d101475d8b20a2381f78447822ac1eab6504dd8, on the APKs and the bundle
+  after the signer check and before the files are attached. The README
+  says how to check a download with `gh attestation verify`. It runs for
+  the first time with the 0.3.0 release files.
 - Hide columns from desktop 0.6.0 (#32). A long press on a column title
   keeps the four sort orders and Restore source order, and gains Hide
   column and Show all columns, as the desktop's header menu has them. The
