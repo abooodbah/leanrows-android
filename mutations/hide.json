@@ -1,0 +1,107 @@
+[
+  {
+    "name": "A hidden column still counts toward the table's width",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Columns.kt",
+    "old": "for (index in widths.indices) if (!hidden[index]) total += widths[index]",
+    "new": "for (index in widths.indices) total += widths[index]"
+  },
+  {
+    "name": "Taps land on hidden columns",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Columns.kt",
+    "old": "            if (hidden[index]) continue\n            if (x >= left && x < left + width) return index",
+    "new": "            if (x >= left && x < left + width) return index"
+  },
+  {
+    "name": "The last shown column can be hidden",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Columns.kt",
+    "old": "!hidden[column] && titles.size - hiddenCount > 1",
+    "new": "!hidden[column]"
+  },
+  {
+    "name": "Show all columns leaves them hidden",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/Columns.kt",
+    "old": "        hidden.fill(false)\n",
+    "new": "\n"
+  },
+  {
+    "name": "Copies keep hidden columns",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/RowCopy.kt",
+    "old": "            if (hidden(column)) continue\n",
+    "new": "\n"
+  },
+  {
+    "name": "Hidden cells are still drawn",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/TableViews.kt",
+    "old": "        for (column in columns.widths.indices) {\n            if (columns.isHidden(column)) continue\n",
+    "new": "        for (column in columns.widths.indices) {\n"
+  },
+  {
+    "name": "Row descriptions keep hidden cells",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/TableViews.kt",
+    "old": "raw.filterIndexed { column, _ -> !columns.isHidden(column) }.joinToString(\", \")",
+    "new": "raw.joinToString(\", \")"
+  },
+  {
+    "name": "Copy row ignores hidden columns",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/TableViews.kt",
+    "old": "RowCopy.text(number, raw, state.columns.titles.size, state.columns::isHidden)",
+    "new": "RowCopy.text(number, raw, state.columns.titles.size)"
+  },
+  {
+    "name": "The long press loses its sort orders",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "        if (column >= 0) addSortItems(popup)\n        popup.menu.add(0, R.id.restore_order, 0, R.string.restore_order).isEnabled = document.order != null\n        val columns",
+    "new": "        popup.menu.add(0, R.id.restore_order, 0, R.string.restore_order).isEnabled = document.order != null\n        val columns"
+  },
+  {
+    "name": "The long press does not offer Hide column",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "        if (column >= 0) popup.menu.add(0, R.id.hide_column, 0, R.string.hide_column).isEnabled = columns.canHide(column)\n",
+    "new": "\n"
+  },
+  {
+    "name": "Hiding does not redraw the rows",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "        relayout(document)\n        val sortedByIt",
+    "new": "        val sortedByIt"
+  },
+  {
+    "name": "The status does not say a sorted column is hidden",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "val marker = if (document.state.columns.isHidden(request.column)) \" (hidden)\" else \"\"",
+    "new": "val marker = \"\""
+  },
+  {
+    "name": "The status does not count hidden columns",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "            1 -> parts += \"1 column hidden\"",
+    "new": "            1 -> Unit"
+  },
+  {
+    "name": "Find does not say hidden columns are searched",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "                        if (hidden) \" · hidden columns are searched too\" else \"\"",
+    "new": "                        \"\""
+  },
+  {
+    "name": "The More menu lists hidden columns to hide",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "        val shown = columns.shown\n",
+    "new": "        val shown = columns.titles.indices.toList()\n"
+  }
+]

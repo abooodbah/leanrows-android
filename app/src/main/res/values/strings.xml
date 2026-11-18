@@ -32,6 +32,9 @@
     <string name="sort_numbers_descending">Sort numbers descending</string>
     <string name="restore_order">Restore source order</string>
     <string name="cancel_sort">Cancel sort</string>
+    <string name="hide_column">Hide column</string>
+    <string name="hide_column_choose">Hide column…</string>
+    <string name="show_all_columns">Show all columns</string>
     <string name="no_sort_xlsx">Sorting does not work on Excel workbooks yet.</string>
     <string name="empty">Open a CSV, TSV, JSON Lines, log or Excel .xlsx file to see its rows.\n\nLeanRows only reads the file. It has no network access.</string>
 </resources>

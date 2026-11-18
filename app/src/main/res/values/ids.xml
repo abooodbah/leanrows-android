@@ -9,4 +9,6 @@
     <item name="sort_numbers_descending" type="id" />
     <item name="restore_order" type="id" />
     <item name="cancel_sort" type="id" />
+    <item name="hide_column" type="id" />
+    <item name="show_all_columns" type="id" />
 </resources>

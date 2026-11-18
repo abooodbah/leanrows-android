@@ -139,19 +139,21 @@ class RowView(context: Context, private val state: TableState) : View(context) {
         this.index = index
         number = row?.number?.toString() ?: if (state.sortColumn >= 0) "" else (index + 1).toString()
         raw = row?.cells.orEmpty()
+        val columns = state.columns
+        // Hidden cells are not cut to width: they are not drawn.
         cells = Array(minOf(raw.size, widths.size)) { column ->
-            TextUtils.ellipsize(raw[column], style.text, widths[column] - 2 * style.padding, TextUtils.TruncateAt.END)
+            if (columns.isHidden(column)) "" else TextUtils.ellipsize(raw[column], style.text, widths[column] - 2 * style.padding, TextUtils.TruncateAt.END)
         }
         contentDescription = if (row == null) {
             "Row $number"
         } else {
-            "Row $number: " + raw.joinToString(", ")
+            "Row $number: " + raw.filterIndexed { column, _ -> !columns.isHidden(column) }.joinToString(", ")
         }
         invalidate()
     }
 
     /** The row for Copy row: its number and every cell, separated by tabs. */
-    fun copyText(): String = RowCopy.text(number, raw, state.columns.titles.size)
+    fun copyText(): String = RowCopy.text(number, raw, state.columns.titles.size, state.columns::isHidden)
 
     /** The full text of the cell under the last touch, or null. */
     fun cellAtLastTouch(): Pair<Int, String>? {
@@ -182,6 +184,7 @@ class RowView(context: Context, private val state: TableState) : View(context) {
         canvas.clipRect(left, 0f, width.toFloat(), height)
         var x = left - state.offsetX
         for (column in columns.widths.indices) {
+            if (columns.isHidden(column)) continue
             val columnWidth = columns.widths[column]
             if (x >= width) break
             if (x + columnWidth > left) {
@@ -202,8 +205,9 @@ class RowView(context: Context, private val state: TableState) : View(context) {
 
 /**
  * The column titles, panned with the rows. A tap on a title sorts by it, a
- * long press offers the sort orders, and a tap on Row restores the file's
- * order; [listener] gets the column, [ROW] for the Row title.
+ * long press offers the sort orders and Hide column, and a tap on Row
+ * restores the file's order; [listener] gets the column in the file, [ROW]
+ * for the Row title. Hidden columns are not drawn.
  */
 class HeaderView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
     interface Listener {
@@ -239,7 +243,8 @@ class HeaderView @JvmOverloads constructor(context: Context, attrs: AttributeSet
         // Every tap counts: two quick taps reverse the order and back.
         gestures.setOnDoubleTapListener(null)
         isClickable = true
-        contentDescription = "Column titles. Tap a title to sort by it, tap it again to reverse, tap Row for the file's order."
+        contentDescription = "Column titles. Tap a title to sort by it, tap it again to reverse, tap Row for the file's order. " +
+            "Long-press a title for text or numeric order and to hide the column."
     }
 
     /** The column under [x], [ROW] for the row numbers, or [NONE]. */
@@ -271,6 +276,7 @@ class HeaderView @JvmOverloads constructor(context: Context, attrs: AttributeSet
         canvas.clipRect(left, 0f, width.toFloat(), height)
         var x = left - state.offsetX
         for ((column, title) in columns.titles.withIndex()) {
+            if (columns.isHidden(column)) continue
             val columnWidth = columns.widths[column]
             if (x >= width) break
             if (x + columnWidth > left) {

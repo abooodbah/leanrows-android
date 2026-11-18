@@ -8,6 +8,11 @@ package io.github.abooodbah.leanrows
  * between [minimum] and [maximum] pixels, and then stay put so the table does
  * not shift while scrolling; later rows only add columns. Longer cells are
  * cut with an ellipsis and shown whole when tapped.
+ *
+ * Columns can be hidden from the view, as in desktop LeanRows 0.6.0. A
+ * hidden column keeps its title, its width and its place in the file; it is
+ * only left out of what is drawn, tapped, panned and copied. The last shown
+ * column cannot be hidden. Nothing about it is saved.
  */
 class Columns(
     val preview: Boolean,
@@ -31,7 +36,49 @@ class Columns(
     var rowNumberWidth = 0f
         private set
 
-    val totalWidth: Float get() = rowNumberWidth + widths.sum()
+    /** One flag per column; true when the column is hidden from the view. */
+    private var hidden = BooleanArray(titles.size)
+
+    var hiddenCount = 0
+        private set
+
+    /** The shown columns, in order, by their index in the file. */
+    val shown: List<Int> get() = titles.indices.filter { !hidden[it] }
+
+    val totalWidth: Float
+        get() {
+            var total = rowNumberWidth
+            for (index in widths.indices) if (!hidden[index]) total += widths[index]
+            return total
+        }
+
+    fun isHidden(column: Int): Boolean = hidden.getOrElse(column) { false }
+
+    /** A shown column can be hidden while another column stays shown. */
+    fun canHide(column: Int): Boolean = column in titles.indices && !hidden[column] && titles.size - hiddenCount > 1
+
+    /** Hides [column] from the view when [canHide] allows it, and says whether it did. */
+    fun hide(column: Int): Boolean {
+        if (!canHide(column)) return false
+        hidden[column] = true
+        hiddenCount++
+        return true
+    }
+
+    /** Shows every column again. Returns false when none was hidden. */
+    fun showAll(): Boolean {
+        if (hiddenCount == 0) return false
+        hidden.fill(false)
+        hiddenCount = 0
+        return true
+    }
+
+    /** Pixels from the left edge of the first shown column to [column]'s left edge. */
+    fun left(column: Int): Float {
+        var left = 0f
+        for (index in 0 until column) if (!hidden[index]) left += widths[index]
+        return left
+    }
 
     init {
         fitRowNumbers(999_999)
@@ -50,6 +97,8 @@ class Columns(
             widths = widths.copyOf(count).also { grown ->
                 for (index in widths.size until count) grown[index] = width(titles[index])
             }
+            // Columns that later rows add are shown.
+            hidden = hidden.copyOf(count)
             changed = true
         }
         if (sized && !changed) return false
@@ -89,10 +138,11 @@ class Columns(
         rowNumberWidth *= factor
     }
 
-    /** The column at [x] pixels from the left edge of the first column, or -1. */
+    /** The shown column at [x] pixels from the left edge of the first shown column, or -1. */
     fun columnAt(x: Float): Int {
         var left = 0f
         for ((index, width) in widths.withIndex()) {
+            if (hidden[index]) continue
             if (x >= left && x < left + width) return index
             left += width
         }
