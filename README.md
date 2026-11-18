@@ -10,6 +10,10 @@ An .xlsx sheet is written as CSV into the app's cache and shown by the same
 row engine. The rules for cell text and the limits are in
 [docs/XLSX.md](docs/XLSX.md).
 
+Tap a cell to see its whole text. The cell dialog copies the cell, or the
+whole row: its number and every cell, separated by tabs, as desktop
+LeanRows copies a row.
+
 Tap a column title to sort the whole file by it, as desktop LeanRows 0.4.0
 does: tap again to reverse, long-press for text or numeric order, tap Row
 for the file's own order. Rows keep their own numbers. A sort uses at most

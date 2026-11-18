@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Copy row leaves out the row number",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/RowCopy.kt",
+    "old": "val text = StringBuilder(number)",
+    "new": "val text = StringBuilder()"
+  },
+  {
+    "name": "A short row loses the places of its missing cells",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/RowCopy.kt",
+    "old": "for (column in 0 until maxOf(columns, cells.size))",
+    "new": "for (column in 0 until cells.size)"
+  },
+  {
+    "name": "Cells are separated by commas",
+    "suite": "jvm",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/RowCopy.kt",
+    "old": "text.append('\\t')",
+    "new": "text.append(',')"
+  },
+  {
+    "name": "Copy row copies the tapped cell",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/MainActivity.kt",
+    "old": "ClipData.newPlainText(\"Row ${row.number}\", row.copyText())",
+    "new": "ClipData.newPlainText(\"Row ${row.number}\", text)"
+  },
+  {
+    "name": "Copy row uses the cells read, not the column count",
+    "suite": "device",
+    "file": "app/src/main/kotlin/io/github/abooodbah/leanrows/TableViews.kt",
+    "old": "RowCopy.text(number, raw, state.columns.titles.size)",
+    "new": "RowCopy.text(number, raw, raw.size)"
+  }
+]

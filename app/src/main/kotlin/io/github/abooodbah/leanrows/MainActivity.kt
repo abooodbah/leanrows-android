@@ -728,6 +728,10 @@ class MainActivity : Activity() {
                 getSystemService(ClipboardManager::class.java)
                     .setPrimaryClip(ClipData.newPlainText("$name, row ${row.number}", text))
             }
+            .setNeutralButton(R.string.copy_row) { _, _ ->
+                getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText("Row ${row.number}", row.copyText()))
+            }
             .setNegativeButton(R.string.close, null)
             .show()
     }
