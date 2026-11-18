@@ -27,6 +27,12 @@ jobs:
     name: Build and attach
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: write
+      # Build provenance attestations: a signing identity from GitHub's OIDC
+      # token and write access to the repository's attestation store.
+      id-token: write
+      attestations: write
     steps:
       - name: Check out the tag
         uses: actions/checkout@v7
@@ -113,6 +119,16 @@ jobs:
           cd dist
           for file in *; do sha256sum "$file" > "$file.sha256"; done
           ls -l
+
+      # Records that this exact APK and bundle were built by this workflow
+      # from this tag, after the signer check, so a download can be checked
+      # with `gh attestation verify`. It is not code signing.
+      - name: Attest build provenance of the APK and the bundle
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.apk
+            dist/*.aab
 
       - name: Attach to the release
         env:

@@ -33,6 +33,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
 
+      - name: Check the release workflow attests its files
+        run: python3 scripts/check-release-workflow.py
+
       - name: Lint, unit tests, release APK and bundle
         run: ./gradlew --no-daemon -PdebugSignRelease lint testDebugUnitTest assembleRelease bundleRelease
 
