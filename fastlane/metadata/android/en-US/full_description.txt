@@ -9,7 +9,8 @@ What it does:
 - Find text anywhere in the file, with an option to match case
 - Sort the whole file by any column, as text or as numbers; tap again to reverse, tap Row for the file's own order
 - Go to a row by number
-- Tap a cell to see all of it and copy it
+- Tap a cell to see all of it and copy it, or copy the whole row
+- Hide columns you do not need: long-press a column title, or use the More menu. Show all columns brings them back. Nothing is saved and the file is not changed
 - Drag sideways to see more columns; the row numbers stay in place
 - A fast scroller for long files
 - Quoted fields with commas and line breaks, as in spreadsheet exports
